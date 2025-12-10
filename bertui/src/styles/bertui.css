@@ -1,0 +1,210 @@
+/* BertUI Built-in Utilities v0.1.0 */
+
+/* Split Text Animation */
+.split {
+  display: inline-block;
+  position: relative;
+  overflow: hidden;
+}
+
+.split::before {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  overflow: hidden;
+  animation: split-left 0.6s ease-out;
+}
+
+.split::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 50%;
+  overflow: hidden;
+  animation: split-right 0.6s ease-out;
+}
+
+@keyframes split-left {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes split-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Move Right Animation */
+.moveright {
+  animation: moveright 0.5s ease-out;
+}
+
+@keyframes moveright {
+  from {
+    transform: translateX(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Move Left Animation */
+.moveleft {
+  animation: moveleft 0.5s ease-out;
+}
+
+@keyframes moveleft {
+  from {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Fade In */
+.fadein {
+  animation: fadein 0.5s ease-out;
+}
+
+@keyframes fadein {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Scale In */
+.scalein {
+  animation: scalein 0.4s ease-out;
+}
+
+@keyframes scalein {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Bounce In */
+.bouncein {
+  animation: bouncein 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes bouncein {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Slide Up */
+.slideup {
+  animation: slideup 0.5s ease-out;
+}
+
+@keyframes slideup {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Slide Down */
+.slidedown {
+  animation: slidedown 0.5s ease-out;
+}
+
+@keyframes slidedown {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Rotate In */
+.rotatein {
+  animation: rotatein 0.6s ease-out;
+}
+
+@keyframes rotatein {
+  from {
+    transform: rotate(-180deg) scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: rotate(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* Pulse */
+.pulse {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+/* Shake */
+.shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-5px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(5px);
+  }
+}

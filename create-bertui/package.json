@@ -1,0 +1,15 @@
+{
+  "name": "create-bertui",
+  "version": "1.0.0",
+  "description": "Scaffolding tool for new BertUI apps.",
+  "type": "module",
+  "bin": {
+    "create-bertui": "./bin/cli.js" 
+  },
+  "files": [
+    "bin",
+    "template" 
+  ],
+  "license": "MIT"
+  
+}

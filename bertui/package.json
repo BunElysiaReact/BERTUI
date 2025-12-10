@@ -1,0 +1,50 @@
+{
+  "name": "bertui",
+  "version": "0.1.0",
+  "description": "Lightning-fast React dev server powered by Bun and Elysia",
+  "type": "module",
+  "main": "./index.ts",
+  "bin": {
+    "bertui": "./bin/bertui.js"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./styles": "./src/styles/bertui.css",
+    "./logger": "./src/logger/logger.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "index.ts",
+    "README.md"
+  ],
+  "scripts": {
+    "dev": "bun bin/bertui.js dev",
+    "build": "bun bin/bertui.js build",
+    "test": "cd test-app && bun run dev"
+  },
+  "keywords": [
+    "react",
+    "bun",
+    "dev-server",
+    "vite-alternative",
+    "elysia",
+    "build-tool",
+    "bundler"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/bertui.git"
+  },
+  "dependencies": {
+    "elysia": "^1.0.0",
+    "ernest-logger": "latest"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0",
+    "bun": ">=1.0.0"
+  }
+}
