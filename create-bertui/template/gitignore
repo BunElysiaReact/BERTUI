@@ -3,6 +3,7 @@ node_modules/
 
 # BertUI
 .bertui/
+.bertuibuild/
 dist/
 
 # Logs

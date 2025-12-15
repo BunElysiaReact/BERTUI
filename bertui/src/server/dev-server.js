@@ -31,6 +31,7 @@ export async function startDevServer(options = {}) {
       const path = params['*'];
       
       if (path.includes('.')) {
+        // Handle compiled directory files
         if (path.startsWith('compiled/')) {
           const filePath = join(compiledDir, path.replace('compiled/', ''));
           const file = Bun.file(filePath);
@@ -188,8 +189,7 @@ function serveHTML(root, hasRouter, config) {
     "imports": {
       "react": "https://esm.sh/react@18.2.0",
       "react-dom": "https://esm.sh/react-dom@18.2.0",
-      "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-      "bertui/router": "/compiled/router.js"
+      "react-dom/client": "https://esm.sh/react-dom@18.2.0/client"
     }
   }
   </script>
