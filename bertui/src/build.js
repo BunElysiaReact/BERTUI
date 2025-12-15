@@ -69,7 +69,7 @@ export async function buildProduction(options = {}) {
         chunk: 'chunks/[name]-[hash].js',
         asset: '[name]-[hash].[ext]'
       },
-      external: ['react', 'react-dom']
+      external: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime']
     });
     
     if (!result.success) {
@@ -451,7 +451,9 @@ async function generateProductionHTML(root, outDir, buildResult) {
   {
     "imports": {
       "react": "https://esm.sh/react@18.2.0",
-      "react-dom": "https://esm.sh/react-dom@18.2.0"
+      "react-dom": "https://esm.sh/react-dom@18.2.0",
+      "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+      "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime"
     }
   }
   </script>
