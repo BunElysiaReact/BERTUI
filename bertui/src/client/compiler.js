@@ -1,6 +1,6 @@
 // src/client/compiler.js
 import { existsSync, mkdirSync, readdirSync, statSync } from 'fs';
-import { join, extname, relative, sep } from 'path';
+import { join, extname, relative } from 'path';
 import logger from '../logger/logger.js';
 
 export async function compileProject(root) {
@@ -10,25 +10,21 @@ export async function compileProject(root) {
   const pagesDir = join(srcDir, 'pages');
   const outDir = join(root, '.bertui', 'compiled');
   
-  // Check if src exists
   if (!existsSync(srcDir)) {
     logger.error('src/ directory not found!');
     process.exit(1);
   }
   
-  // Create output directory
   if (!existsSync(outDir)) {
     mkdirSync(outDir, { recursive: true });
     logger.info('Created .bertui/compiled/');
   }
   
-  // Discover routes if pages directory exists
   let routes = [];
   if (existsSync(pagesDir)) {
     routes = await discoverRoutes(pagesDir);
     logger.info(`Discovered ${routes.length} routes`);
     
-    // Display routes table
     if (routes.length > 0) {
       logger.bigLog('ROUTES DISCOVERED', { color: 'blue' });
       logger.table(routes.map((r, i) => ({
@@ -37,17 +33,17 @@ export async function compileProject(root) {
         file: r.file,
         type: r.type
       })));
-      
-      // Generate router file
-      await generateRouter(routes, outDir);
-      logger.info('Generated router.js');
     }
   }
   
-  // Compile all files
   const startTime = Date.now();
   const stats = await compileDirectory(srcDir, outDir, root);
   const duration = Date.now() - startTime;
+  
+  if (routes.length > 0) {
+    await generateRouter(routes, outDir, root);
+    logger.info('Generated router.js');
+  }
   
   logger.success(`Compiled ${stats.files} files in ${duration}ms`);
   logger.info(`Output: ${outDir}`);
@@ -66,28 +62,24 @@ async function discoverRoutes(pagesDir) {
       const relativePath = join(basePath, entry.name);
       
       if (entry.isDirectory()) {
-        // Recursively scan subdirectories
         await scanDirectory(fullPath, relativePath);
       } else if (entry.isFile()) {
         const ext = extname(entry.name);
         if (['.jsx', '.tsx', '.js', '.ts'].includes(ext)) {
           const fileName = entry.name.replace(ext, '');
           
-          // Generate route path
           let route = '/' + relativePath.replace(/\\/g, '/').replace(ext, '');
           
-          // Handle index files
           if (fileName === 'index') {
             route = route.replace('/index', '') || '/';
           }
           
-          // Determine route type
           const isDynamic = fileName.includes('[') && fileName.includes(']');
           const type = isDynamic ? 'dynamic' : 'static';
           
           routes.push({
             route: route === '' ? '/' : route,
-            file: relativePath,
+            file: relativePath.replace(/\\/g, '/'),
             path: fullPath,
             type
           });
@@ -98,7 +90,6 @@ async function discoverRoutes(pagesDir) {
   
   await scanDirectory(pagesDir);
   
-  // Sort routes: static routes first, then dynamic
   routes.sort((a, b) => {
     if (a.type === b.type) {
       return a.route.localeCompare(b.route);
@@ -109,10 +100,10 @@ async function discoverRoutes(pagesDir) {
   return routes;
 }
 
-async function generateRouter(routes, outDir) {
+async function generateRouter(routes, outDir, root) {
   const imports = routes.map((route, i) => {
     const componentName = `Page${i}`;
-    const importPath = `./pages/${route.file.replace(/\\/g, '/')}`;
+    const importPath = `./pages/${route.file.replace(/\.(jsx|tsx|ts)$/, '.js')}`;
     return `import ${componentName} from '${importPath}';`;
   }).join('\n');
   
@@ -121,47 +112,132 @@ async function generateRouter(routes, outDir) {
     return `  { path: '${route.route}', component: ${componentName}, type: '${route.type}' }`;
   }).join(',\n');
   
-  const routerCode = `// Auto-generated router - DO NOT EDIT
+  // CRITICAL: Copy Router component into compiled folder
+  const routerComponentCode = `
+import { useState, useEffect, createContext, useContext } from 'react';
+
+const RouterContext = createContext(null);
+
+export function useRouter() {
+  const context = useContext(RouterContext);
+  if (!context) {
+    throw new Error('useRouter must be used within a Router component');
+  }
+  return context;
+}
+
+export function Router({ routes }) {
+  const [currentRoute, setCurrentRoute] = useState(null);
+  const [params, setParams] = useState({});
+
+  useEffect(() => {
+    matchAndSetRoute(window.location.pathname);
+
+    const handlePopState = () => {
+      matchAndSetRoute(window.location.pathname);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  function matchAndSetRoute(pathname) {
+    for (const route of routes) {
+      if (route.type === 'static' && route.path === pathname) {
+        setCurrentRoute(route);
+        setParams({});
+        return;
+      }
+    }
+
+    for (const route of routes) {
+      if (route.type === 'dynamic') {
+        const pattern = route.path.replace(/\\[([^\\]]+)\\]/g, '([^/]+)');
+        const regex = new RegExp('^' + pattern + '$');
+        const match = pathname.match(regex);
+
+        if (match) {
+          const paramNames = [...route.path.matchAll(/\\[([^\\]]+)\\]/g)].map(m => m[1]);
+          const extractedParams = {};
+          paramNames.forEach((name, i) => {
+            extractedParams[name] = match[i + 1];
+          });
+
+          setCurrentRoute(route);
+          setParams(extractedParams);
+          return;
+        }
+      }
+    }
+
+    setCurrentRoute(null);
+    setParams({});
+  }
+
+  function navigate(path) {
+    window.history.pushState({}, '', path);
+    matchAndSetRoute(path);
+  }
+
+  const routerValue = {
+    currentRoute,
+    params,
+    navigate,
+    pathname: window.location.pathname
+  };
+
+  const Component = currentRoute?.component;
+
+  return (
+    <RouterContext.Provider value={routerValue}>
+      {Component ? <Component params={params} /> : <NotFound />}
+    </RouterContext.Provider>
+  );
+}
+
+export function Link({ to, children, ...props }) {
+  const { navigate } = useRouter();
+
+  function handleClick(e) {
+    e.preventDefault();
+    navigate(to);
+  }
+
+  return (
+    <a href={to} onClick={handleClick} {...props}>
+      {children}
+    </a>
+  );
+}
+
+function NotFound() {
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: '100vh',
+      fontFamily: 'system-ui'
+    }}>
+      <h1 style={{ fontSize: '6rem', margin: 0 }}>404</h1>
+      <p style={{ fontSize: '1.5rem', color: '#666' }}>Page not found</p>
+      <a href="/" style={{ color: '#10b981', textDecoration: 'none', fontSize: '1.2rem' }}>
+        Go home
+      </a>
+    </div>
+  );
+}
+
 ${imports}
 
 export const routes = [
 ${routeConfigs}
 ];
-
-export function matchRoute(pathname) {
-  // Try exact match first
-  for (const route of routes) {
-    if (route.type === 'static' && route.path === pathname) {
-      return route;
-    }
-  }
-  
-  // Try dynamic routes
-  for (const route of routes) {
-    if (route.type === 'dynamic') {
-      const pattern = route.path.replace(/\\[([^\\]]+)\\]/g, '([^/]+)');
-      const regex = new RegExp('^' + pattern + '$');
-      const match = pathname.match(regex);
-      
-      if (match) {
-        // Extract params
-        const paramNames = [...route.path.matchAll(/\\[([^\\]]+)\\]/g)].map(m => m[1]);
-        const params = {};
-        paramNames.forEach((name, i) => {
-          params[name] = match[i + 1];
-        });
-        
-        return { ...route, params };
-      }
-    }
-  }
-  
-  return null;
-}
 `;
   
   const routerPath = join(outDir, 'router.js');
-  await Bun.write(routerPath, routerCode);
+  await Bun.write(routerPath, routerComponentCode);
 }
 
 async function compileDirectory(srcDir, outDir, root) {
@@ -174,24 +250,26 @@ async function compileDirectory(srcDir, outDir, root) {
     const stat = statSync(srcPath);
     
     if (stat.isDirectory()) {
-      // Recursively compile subdirectories
       const subOutDir = join(outDir, file);
       mkdirSync(subOutDir, { recursive: true });
       const subStats = await compileDirectory(srcPath, subOutDir, root);
       stats.files += subStats.files;
       stats.skipped += subStats.skipped;
     } else {
-      // Compile file
       const ext = extname(file);
       const relativePath = relative(join(root, 'src'), srcPath);
       
       if (['.jsx', '.tsx', '.ts'].includes(ext)) {
         await compileFile(srcPath, outDir, file, relativePath);
         stats.files++;
-      } else if (ext === '.js' || ext === '.css') {
-        // Copy as-is
+      } else if (ext === '.js') {
         const outPath = join(outDir, file);
-        await Bun.write(outPath, Bun.file(srcPath));
+        let code = await Bun.file(srcPath).text();
+        
+        // Fix imports in .js files too
+        code = fixImports(code);
+        
+        await Bun.write(outPath, code);
         logger.debug(`Copied: ${relativePath}`);
         stats.files++;
       } else {
@@ -209,11 +287,17 @@ async function compileFile(srcPath, outDir, filename, relativePath) {
   const loader = ext === '.tsx' ? 'tsx' : ext === '.ts' ? 'ts' : 'jsx';
   
   try {
-    const transpiler = new Bun.Transpiler({ loader });
-    const code = await Bun.file(srcPath).text();
-    const compiled = await transpiler.transform(code);
+    let code = await Bun.file(srcPath).text();
     
-    // Change extension to .js
+    // Fix imports BEFORE transpiling
+    code = fixImports(code);
+    
+    const transpiler = new Bun.Transpiler({ loader });
+    let compiled = await transpiler.transform(code);
+    
+    // Add .js extensions to relative imports
+    compiled = fixRelativeImports(compiled);
+    
     const outFilename = filename.replace(/\.(jsx|tsx|ts)$/, '.js');
     const outPath = join(outDir, outFilename);
     
@@ -223,4 +307,36 @@ async function compileFile(srcPath, outDir, filename, relativePath) {
     logger.error(`Failed to compile ${relativePath}: ${error.message}`);
     throw error;
   }
+}
+
+function fixImports(code) {
+  // Remove bertui/styles imports
+  code = code.replace(/import\s+['"]bertui\/styles['"]\s*;?\s*/g, '');
+  
+  // Replace bertui/router with /compiled/router.js
+  code = code.replace(
+    /from\s+['"]bertui\/router['"]/g,
+    "from '/compiled/router.js'"
+  );
+  
+  // Fix ../.bertui/compiled paths to /compiled
+  code = code.replace(
+    /from\s+['"]\.\.\/\.bertui\/compiled\/([^'"]+)['"]/g,
+    "from '/compiled/$1'"
+  );
+  
+  return code;
+}
+
+function fixRelativeImports(code) {
+  const importRegex = /from\s+['"](\.\.[\/\\]|\.\/)((?:[^'"]+?)(?<!\.js|\.jsx|\.ts|\.tsx|\.json))['"];?/g;
+  
+  code = code.replace(importRegex, (match, prefix, path) => {
+    if (path.endsWith('/') || /\.\w+$/.test(path)) {
+      return match;
+    }
+    return `from '${prefix}${path}.js';`;
+  });
+  
+  return code;
 }

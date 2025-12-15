@@ -62,7 +62,7 @@ All template files import from the `bertui` package:
 
 ```jsx
 // ✅ Correct - Users import from package
-import 'bertui/styles';
+;
 import { Link } from 'bertui/router';
 
 // ❌ Wrong - Don't use relative imports
@@ -193,7 +193,7 @@ bun run dev
 
 2. **CSS Animations** ✅
    - 15+ utility classes
-   - Import with `import 'bertui/styles'`
+   - Import with ``
    - Works on any element
 
 3. **Client-side Navigation** ✅

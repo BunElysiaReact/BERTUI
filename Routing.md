@@ -21,7 +21,7 @@ src/
 
 ```javascript
 // src/main.jsx
-import 'bertui/styles';
+;
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { Router } from 'bertui/router';

@@ -52,7 +52,7 @@ This is the very first release of BertUI (Bun Elisiya React Template User Interf
 * **Zero-Configuration Tooling:** Automatically supports **JavaScript/JSX** and **TypeScript/TSX** files natively via Bun.
 * **Integrated Development Server:** Starts with the command `bertui dev`, powered by **Elysia** for near-instant startup, featuring built-in **Hot Module Replacement (HMR)** via WebSockets.
 * **Optimized Production Build:** Creates a production-ready static build using the command `bertui build`, leveraging **Bun's native bundler** and **PostCSS** for CSS optimization (autoprefixer/minification).
-* **Built-in Animation Utilities:** Includes high-quality, lightweight CSS utilities accessible via `import 'bertui/styles'`.
+* **Built-in Animation Utilities:** Includes high-quality, lightweight CSS utilities accessible via ``.
     * Classes include: `.fadein`, `.moveright`, `.bouncein`, `.split`, `.slideup`, and others.
 
 ### ⚠️ Known Limitations

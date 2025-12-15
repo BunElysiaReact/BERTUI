@@ -1,6 +1,6 @@
 {
   "name": "bertui",
-  "version": "0.1.6",
+  "version": "0.2.1",
   "description": "Lightning-fast React dev server powered by Bun and Elysia",
   "type": "module",
   "main": "./index.js",
@@ -8,10 +8,10 @@
     "bertui": "./bin/bertui.js"
   },
   "exports": {
-    ".": "./index.js",
-    "./styles": "./src/styles/bertui.css",
-    "./logger": "./src/logger/logger.js",
-    "./router": "./src/router/Router.jsx"
+  ".": "./index.js",
+  "./styles": "./src/styles/bertui.css",
+  "./logger": "./src/logger/logger.js",
+  "./router": "./src/router/Router.jsx"
   },
   "files": [
     "bin",

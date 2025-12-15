@@ -1,7 +1,5 @@
-// src/router/Router.jsx
 import { useState, useEffect, createContext, useContext } from 'react';
 
-// Router context
 const RouterContext = createContext(null);
 
 export function useRouter() {
@@ -12,20 +10,13 @@ export function useRouter() {
   return context;
 }
 
-export function useParams() {
-  const { params } = useRouter();
-  return params;
-}
-
-export function Router({ routes, children }) {
+export function Router({ routes }) {
   const [currentRoute, setCurrentRoute] = useState(null);
   const [params, setParams] = useState({});
 
   useEffect(() => {
-    // Match initial route
     matchAndSetRoute(window.location.pathname);
 
-    // Handle browser navigation
     const handlePopState = () => {
       matchAndSetRoute(window.location.pathname);
     };
@@ -35,7 +26,6 @@ export function Router({ routes, children }) {
   }, []);
 
   function matchAndSetRoute(pathname) {
-    // Try exact match first (static routes)
     for (const route of routes) {
       if (route.type === 'static' && route.path === pathname) {
         setCurrentRoute(route);
@@ -44,7 +34,6 @@ export function Router({ routes, children }) {
       }
     }
 
-    // Try dynamic routes
     for (const route of routes) {
       if (route.type === 'dynamic') {
         const pattern = route.path.replace(/\[([^\]]+)\]/g, '([^/]+)');
@@ -52,7 +41,6 @@ export function Router({ routes, children }) {
         const match = pathname.match(regex);
 
         if (match) {
-          // Extract params
           const paramNames = [...route.path.matchAll(/\[([^\]]+)\]/g)].map(m => m[1]);
           const extractedParams = {};
           paramNames.forEach((name, i) => {
@@ -66,7 +54,6 @@ export function Router({ routes, children }) {
       }
     }
 
-    // No match found - 404
     setCurrentRoute(null);
     setParams({});
   }
@@ -83,18 +70,16 @@ export function Router({ routes, children }) {
     pathname: window.location.pathname
   };
 
+  const Component = currentRoute?.component;
+
   return (
     <RouterContext.Provider value={routerValue}>
-      {currentRoute ? (
-        <currentRoute.component />
-      ) : (
-        children || <NotFound />
-      )}
+      {Component ? <Component params={params} /> : <NotFound />}
     </RouterContext.Provider>
   );
 }
 
-export function Link({ to, children, className, ...props }) {
+export function Link({ to, children, ...props }) {
   const { navigate } = useRouter();
 
   function handleClick(e) {
@@ -103,7 +88,7 @@ export function Link({ to, children, className, ...props }) {
   }
 
   return (
-    <a href={to} onClick={handleClick} className={className} {...props}>
+    <a href={to} onClick={handleClick} {...props}>
       {children}
     </a>
   );
@@ -117,7 +102,7 @@ function NotFound() {
       alignItems: 'center',
       justifyContent: 'center',
       minHeight: '100vh',
-      fontFamily: 'system-ui, sans-serif'
+      fontFamily: 'system-ui'
     }}>
       <h1 style={{ fontSize: '6rem', margin: 0 }}>404</h1>
       <p style={{ fontSize: '1.5rem', color: '#666' }}>Page not found</p>

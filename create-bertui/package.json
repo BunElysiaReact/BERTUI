@@ -1,6 +1,6 @@
 {
   "name": "create-bertui",
-  "version": "1.0.3",
+  "version": "1.0.8",
   "description": "Scaffolding tool for new BertUI apps.",
   "type": "module",
   "bin": {

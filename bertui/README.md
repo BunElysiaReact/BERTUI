@@ -18,7 +18,7 @@ bun add bertui react react-dom
 ## Usage
 ```javascript
 // src/main.jsx
-import 'bertui/styles';
+;
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 

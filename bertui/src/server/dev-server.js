@@ -14,7 +14,6 @@ export async function startDevServer(options = {}) {
   const clients = new Set();
   let hasRouter = false;
   
-  // Check if router exists
   const routerPath = join(compiledDir, 'router.js');
   if (existsSync(routerPath)) {
     hasRouter = true;
@@ -22,38 +21,35 @@ export async function startDevServer(options = {}) {
   }
   
   const app = new Elysia()
-    // Main HTML route - serves all pages
     .get('/', async () => {
       return serveHTML(root, hasRouter);
     })
     
-    // Catch-all route for SPA routing
     .get('/*', async ({ params, set }) => {
       const path = params['*'];
       
-      // Check if it's a file request
       if (path.includes('.')) {
-        // Try to serve as static file
-        const filePath = join(compiledDir, path);
-        const file = Bun.file(filePath);
-        
-        if (await file.exists()) {
-          const ext = extname(path);
-          const contentType = getContentType(ext);
+        if (path.startsWith('compiled/')) {
+          const filePath = join(compiledDir, path.replace('compiled/', ''));
+          const file = Bun.file(filePath);
           
-          return new Response(await file.text(), {
-            headers: { 
-              'Content-Type': contentType,
-              'Cache-Control': 'no-store'
-            }
-          });
+          if (await file.exists()) {
+            const ext = extname(path);
+            const contentType = ext === '.js' ? 'application/javascript' : getContentType(ext);
+            
+            return new Response(await file.text(), {
+              headers: { 
+                'Content-Type': contentType,
+                'Cache-Control': 'no-store'
+              }
+            });
+          }
         }
         
         set.status = 404;
         return 'File not found';
       }
       
-      // For non-file routes, serve the main HTML (SPA mode)
       return serveHTML(root, hasRouter);
     })
     
@@ -103,25 +99,6 @@ ws.onclose = () => {
       }
     })
     
-    // Serve BertUI CSS
-    .get('/styles/bertui.css', async ({ set }) => {
-      const cssPath = join(import.meta.dir, '../styles/bertui.css');
-      const file = Bun.file(cssPath);
-      
-      if (!await file.exists()) {
-        set.status = 404;
-        return 'CSS file not found';
-      }
-      
-      return new Response(await file.text(), {
-        headers: { 
-          'Content-Type': 'text/css',
-          'Cache-Control': 'no-store'
-        }
-      });
-    })
-    
-    // Serve compiled files
     .get('/compiled/*', async ({ params, set }) => {
       const filepath = join(compiledDir, params['*']);
       const file = Bun.file(filepath);
@@ -132,7 +109,7 @@ ws.onclose = () => {
       }
       
       const ext = extname(filepath);
-      const contentType = getContentType(ext);
+      const contentType = ext === '.js' ? 'application/javascript' : getContentType(ext);
       
       return new Response(await file.text(), {
         headers: { 
@@ -142,7 +119,6 @@ ws.onclose = () => {
       });
     })
     
-    // Serve public assets
     .get('/public/*', async ({ params, set }) => {
       const publicDir = join(root, 'public');
       const filepath = join(publicDir, params['*']);
@@ -166,9 +142,7 @@ ws.onclose = () => {
   logger.success(`🚀 Server running at http://localhost:${port}`);
   logger.info(`📁 Serving: ${root}`);
   
-  // Watch for file changes
   setupWatcher(root, compiledDir, clients, () => {
-    // Check router status on recompile
     hasRouter = existsSync(join(compiledDir, 'router.js'));
   });
   
@@ -183,7 +157,30 @@ function serveHTML(root, hasRouter) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BertUI App - Dev</title>
-  <link rel="stylesheet" href="/styles/bertui.css">
+  
+  <!-- Import Map for React and dependencies -->
+  <script type="importmap">
+  {
+    "imports": {
+      "react": "https://esm.sh/react@18.2.0",
+      "react-dom": "https://esm.sh/react-dom@18.2.0",
+      "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+      "bertui/router": "/compiled/router.js"
+    }
+  }
+  </script>
+  
+  <style>
+    /* Inline basic styles since we're skipping CSS for now */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+  </style>
 </head>
 <body>
   <div id="root"></div>
@@ -204,6 +201,7 @@ function serveHTML(root, hasRouter) {
 function getContentType(ext) {
   const types = {
     '.js': 'application/javascript',
+    '.jsx': 'application/javascript',
     '.css': 'text/css',
     '.html': 'text/html',
     '.json': 'application/json',
@@ -212,11 +210,7 @@ function getContentType(ext) {
     '.jpeg': 'image/jpeg',
     '.gif': 'image/gif',
     '.svg': 'image/svg+xml',
-    '.ico': 'image/x-icon',
-    '.woff': 'font/woff',
-    '.woff2': 'font/woff2',
-    '.ttf': 'font/ttf',
-    '.eot': 'application/vnd.ms-fontobject'
+    '.ico': 'image/x-icon'
   };
   
   return types[ext] || 'text/plain';
@@ -239,7 +233,6 @@ function setupWatcher(root, compiledDir, clients, onRecompile) {
     if (['.js', '.jsx', '.ts', '.tsx', '.css'].includes(ext)) {
       logger.info(`📝 File changed: ${filename}`);
       
-      // Notify clients that recompilation is starting
       for (const client of clients) {
         try {
           client.send(JSON.stringify({ type: 'recompiling' }));
@@ -248,16 +241,13 @@ function setupWatcher(root, compiledDir, clients, onRecompile) {
         }
       }
       
-      // Recompile the project
       try {
         await compileProject(root);
         
-        // Call callback to update router status
         if (onRecompile) {
           onRecompile();
         }
         
-        // Notify clients to reload
         for (const client of clients) {
           try {
             client.send(JSON.stringify({ type: 'reload', file: filename }));
