@@ -415,8 +415,9 @@ function MyComponent() {
   }
 };
 </code></pre>
-<h2>CSS Classes</h2>
-<p>All built-in animation utilities:</p>
+<h2><del>CSS Classes</del> (Temporarily Unavailable)</h2>
+<p><strong>⚠️ IMPORTANT:</strong> The built-in CSS animation utilities have been temporarily removed due to compatibility issues with <code>bun.build</code>. They will return in an upcoming release.</p>
+<p><strong>Previously available animations</strong> (will return soon):</p>
 <ul>
 <li><code>.fadein</code> - Fade in (0.5s)</li>
 <li><code>.scalein</code> - Scale up (0.4s)</li>
@@ -430,6 +431,13 @@ function MyComponent() {
 <li><code>.shake</code> - Shake effect (0.5s)</li>
 <li><code>.split</code> - Split text reveal (0.6s)</li>
 </ul>
+<p><strong>Alternatives while we work on this:</strong></p>
+<ul>
+<li>Use your own CSS animations</li>
+<li>Try <a href="https://www.framer.com/motion/">Framer Motion</a> (<code>bun add framer-motion</code>)</li>
+<li>Try <a href="https://www.react-spring.dev/">React Spring</a> (<code>bun add @react-spring/web</code>)</li>
+</ul>
+<p>See the <a href="../guides/animations.html">animations guide</a> for detailed alternatives.</p>
 <h2>Commands</h2>
 <h3>Development</h3>
 <pre><code class="language-bash">bun run dev              # Start dev server
@@ -439,10 +447,26 @@ bun run dev --port 8080  # Custom port
 <pre><code class="language-bash">bun run build    # Build for production
 bun run preview  # Preview production build
 </code></pre>
+<h2>Project Structure</h2>
+<pre><code>my-app/
+├── public/              # Static assets
+│   └── favicon.svg
+├── src/
+│   ├── pages/          # File-based routes
+│   │   ├── index.jsx   # Home page (/)
+│   │   ├── about.jsx   # About page (/about)
+│   │   └── blog/
+│   │       ├── index.jsx      # /blog
+│   │       └── [slug].jsx     # /blog/:slug
+│   ├── components/     # Reusable components
+│   └── main.jsx        # App entry point
+└── bertui.config.js    # Optional config
+</code></pre>
 <h2>Next Steps</h2>
 <ul>
-<li><a href="../tutorials/complete-app.html">See full examples</a></li>
-<li><a href="../guides/deployment.html">Deployment guide</a></li>
+<li><a href="../guides/routing.html">File-Based Routing Guide</a></li>
+<li><a href="../tutorials/blog.html">Build a Blog Tutorial</a></li>
+<li><a href="../guides/deployment.html">Deployment Guide</a></li>
 </ul>
 
     </main>

@@ -69,10 +69,11 @@ export default {
 };
 ```
 
-## CSS Classes
+## ~~CSS Classes~~ (Temporarily Unavailable)
 
-All built-in animation utilities:
+**⚠️ IMPORTANT:** The built-in CSS animation utilities have been temporarily removed due to compatibility issues with `bun.build`. They will return in an upcoming release.
 
+**Previously available animations** (will return soon):
 - `.fadein` - Fade in (0.5s)
 - `.scalein` - Scale up (0.4s)
 - `.bouncein` - Bounce (0.6s)
@@ -84,6 +85,13 @@ All built-in animation utilities:
 - `.pulse` - Pulsing loop (1.5s)
 - `.shake` - Shake effect (0.5s)
 - `.split` - Split text reveal (0.6s)
+
+**Alternatives while we work on this:**
+- Use your own CSS animations
+- Try [Framer Motion](https://www.framer.com/motion/) (`bun add framer-motion`)
+- Try [React Spring](https://www.react-spring.dev/) (`bun add @react-spring/web`)
+
+See the [animations guide](../guides/animations.html) for detailed alternatives.
 
 ## Commands
 
@@ -101,7 +109,26 @@ bun run build    # Build for production
 bun run preview  # Preview production build
 ```
 
+## Project Structure
+
+```
+my-app/
+├── public/              # Static assets
+│   └── favicon.svg
+├── src/
+│   ├── pages/          # File-based routes
+│   │   ├── index.jsx   # Home page (/)
+│   │   ├── about.jsx   # About page (/about)
+│   │   └── blog/
+│   │       ├── index.jsx      # /blog
+│   │       └── [slug].jsx     # /blog/:slug
+│   ├── components/     # Reusable components
+│   └── main.jsx        # App entry point
+└── bertui.config.js    # Optional config
+```
+
 ## Next Steps
 
-- [See full examples](../tutorials/complete-app.html)
-- [Deployment guide](../guides/deployment.html)
+- [File-Based Routing Guide](../guides/routing.html)
+- [Build a Blog Tutorial](../tutorials/blog.html)
+- [Deployment Guide](../guides/deployment.html)

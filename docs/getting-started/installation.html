@@ -368,42 +368,133 @@
 <pre><code class="language-bash">bun --version
 # Should output: 1.x.x or higher
 </code></pre>
-<h2>Create New Project</h2>
-<p>Use the official scaffolding tool:</p>
+<h2>Create New Project (Recommended)</h2>
+<p>The easiest way to get started is using our scaffolding tool:</p>
 <pre><code class="language-bash">bunx create-bertui my-awesome-app
 </code></pre>
 <p>This creates a new BertUI project with:</p>
 <ul>
-<li>Pre-configured file structure</li>
-<li>Sample pages with routing</li>
-<li>Beautiful example components</li>
-<li>All dependencies installed</li>
+<li>✅ Pre-configured file structure</li>
+<li>✅ Sample pages with routing</li>
+<li>✅ Beautiful example components</li>
+<li>✅ All dependencies installed</li>
+<li>✅ Zero configuration needed</li>
 </ul>
-<h2>Project Structure</h2>
-<pre><code>my-awesome-app/
-├── public/              # Static assets
+<p><strong>Just run and go!</strong> 🚀</p>
+<h2>Manual Installation (Advanced)</h2>
+<p>If you prefer to set up everything manually:</p>
+<pre><code class="language-bash"># Create your project directory
+mkdir my-app
+cd my-app
+
+# Initialize package.json
+bun init -y
+
+# Install BertUI and React
+bun add bertui react react-dom
+</code></pre>
+<p>Then you&#39;ll need to manually create:</p>
+<h3>1. Project Structure</h3>
+<pre><code>my-app/
+├── public/
 │   └── favicon.svg
 ├── src/
-│   ├── pages/          # File-based routes
-│   │   ├── index.jsx   # Home page
-│   │   ├── about.jsx   # About page
-│   │   └── blog/       # Blog section
-│   ├── components/     # Reusable components
-│   └── styles/         # Global styles
+│   ├── pages/
+│   │   └── index.jsx
+│   └── main.jsx
 ├── package.json
-└── bertui.config.js    # Optional config
+└── bertui.config.js (optional)
 </code></pre>
+<h3>2. Main Entry Point</h3>
+<p><strong><code>src/main.jsx</code>:</strong></p>
+<pre><code class="language-jsx">import React from &#39;react&#39;;
+import ReactDOM from &#39;react-dom/client&#39;;
+import { Router, routes } from &#39;./router.js&#39;;
+
+ReactDOM.createRoot(document.getElementById(&#39;root&#39;)).render(
+  &lt;React.StrictMode&gt;
+    &lt;Router routes={routes} /&gt;
+  &lt;/React.StrictMode&gt;
+);
+</code></pre>
+<h3>3. First Page</h3>
+<p><strong><code>src/pages/index.jsx</code>:</strong></p>
+<pre><code class="language-jsx">export default function Home() {
+  return &lt;h1&gt;Hello BertUI! ⚡&lt;/h1&gt;;
+}
+</code></pre>
+<h3>4. Package.json Scripts</h3>
+<pre><code class="language-json">{
+  &quot;scripts&quot;: {
+    &quot;dev&quot;: &quot;bertui dev&quot;,
+    &quot;build&quot;: &quot;bertui build&quot;,
+    &quot;preview&quot;: &quot;bunx serve dist -p 5000&quot;
+  }
+}
+</code></pre>
+<p><strong>⚠️ Note:</strong> Manual setup requires you to understand the router configuration. We <strong>highly recommend</strong> using <code>bunx create-bertui</code> instead!</p>
 <h2>Start Development</h2>
 <pre><code class="language-bash">cd my-awesome-app
 bun run dev
 </code></pre>
 <p>Your dev server starts instantly at <a href="http://localhost:3000">http://localhost:3000</a></p>
+<h2>What You Get</h2>
+<h3>With <code>bunx create-bertui</code> (Recommended)</h3>
+<p>✅ Complete project structure<br>✅ Pre-configured routing<br>✅ Example pages and components<br>✅ Beautiful landing page<br>✅ Blog example with dynamic routes<br>✅ All best practices included  </p>
+<h3>With Manual Install</h3>
+<p>⚠️ Basic setup only<br>⚠️ You configure everything<br>⚠️ Requires routing knowledge<br>⚠️ More setup time  </p>
+<h2>Project Structure Explained</h2>
+<pre><code>my-awesome-app/
+├── public/              # Static assets (images, fonts, etc.)
+│   └── favicon.svg     # Your site favicon
+│
+├── src/
+│   ├── pages/          # 📁 FILE-BASED ROUTES (magic happens here!)
+│   │   ├── index.jsx   # Home page (/)
+│   │   ├── about.jsx   # About page (/about)
+│   │   └── blog/
+│   │       ├── index.jsx      # Blog listing (/blog)
+│   │       └── [slug].jsx     # Blog post (/blog/:slug)
+│   │
+│   ├── components/     # Reusable React components
+│   └── main.jsx        # App entry point
+│
+├── package.json        # Project dependencies
+└── bertui.config.js    # Optional configuration
+</code></pre>
+<h2>Verify Installation</h2>
+<p>Test that everything works:</p>
+<pre><code class="language-bash"># Should see the dev server start
+bun run dev
+
+# In another terminal, test the build
+bun run build
+
+# Should create dist/ folder
+ls dist
+</code></pre>
+<h2>Troubleshooting</h2>
+<h3>Command not found: bertui</h3>
+<p>Make sure you installed BertUI:</p>
+<pre><code class="language-bash">bun add bertui
+</code></pre>
+<h3>Port already in use</h3>
+<p>Change the port:</p>
+<pre><code class="language-bash">bun run dev --port 8080
+</code></pre>
+<h3>Module not found errors</h3>
+<p>Reinstall dependencies:</p>
+<pre><code class="language-bash">rm -rf node_modules
+bun install
+</code></pre>
 <h2>Next Steps</h2>
 <ul>
-<li><a href="./first-page.html">Create your first page</a></li>
-<li><a href="../guides/routing.html">Learn about routing</a></li>
-<li><a href="../guides/animations.html">Add animations</a></li>
+<li><a href="./first-page.html">Create Your First Page</a> - Build something!</li>
+<li><a href="../guides/routing.html">Learn About Routing</a> - Master file-based routing</li>
+<li><del><a href="../guides/animations.html">Add Animations</a></del> - Temporarily unavailable</li>
 </ul>
+<hr>
+<p><strong>💡 Tip:</strong> Always use <code>bunx create-bertui</code> for new projects. It&#39;s the fastest way to get started and includes all best practices!</p>
 
     </main>
   </div>

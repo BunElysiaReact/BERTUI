@@ -3,105 +3,141 @@
 // ==========================================
 # Built-in Animations
 
-BertUI includes 15+ CSS animation utilities ready to use.
+## ⚠️ IMPORTANT NOTICE
 
-## Available Animations
+**The built-in CSS animation utilities have been temporarily removed from BertUI.**
 
-### Fade & Scale
+### Why?
+We encountered compatibility issues with `bun.build` that prevented the CSS utilities from being properly bundled in production builds. Rather than ship a broken feature, we've temporarily disabled it while we work on a proper solution.
 
-```jsx
-<div className="fadein">Smooth fade in</div>
-<div className="scalein">Scale up entrance</div>
+### When will they return?
+We're actively working on this and expect to have the animations back in an upcoming release. The feature will return better than ever!
+
+### What can I use instead?
+
+While we work on bringing back the built-in animations, here are your options:
+
+#### 1. Use Your Own CSS Animations
+
+```css
+/* src/styles/animations.css */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
 ```
 
-### Slide
-
 ```jsx
-<div className="slideup">Slide from bottom</div>
-<div className="slidedown">Slide from top</div>
-<div className="moveright">Slide from left</div>
-<div className="moveleft">Slide from right</div>
+import './styles/animations.css';
+
+export default function Home() {
+  return <h1 className="fade-in">Welcome!</h1>;
+}
 ```
 
-### Bounce & Rotate
+#### 2. Use Inline Styles with React
 
 ```jsx
-<div className="bouncein">Bouncy entrance</div>
-<div className="rotatein">Rotate in</div>
-```
+import { useState, useEffect } from 'react';
 
-### Special Effects
-
-```jsx
-<div className="pulse">Continuous pulse</div>
-<div className="shake">Shake effect</div>
-```
-
-### Split Text
-
-```jsx
-<h1 className="split" data-text="BertUI">
-  BertUI
-</h1>
-```
-
-**Note:** The split animation requires a `data-text` attribute with the same text.
-
-## Combining Animations
-
-You can combine animations with your own styles:
-
-```jsx
-<div 
-  className="fadein"
-  style={{
-    padding: '2rem',
-    background: 'linear-gradient(135deg, #667eea, #764ba2)',
-    borderRadius: '12px'
-  }}
->
-  <h2>Beautiful Card</h2>
-</div>
-```
-
-## Staggered Animations
-
-Create staggered effects with inline delays:
-
-```jsx
-export default function Features() {
-  const features = ['Fast', 'Simple', 'Powerful'];
+export default function FadeIn({ children }) {
+  const [opacity, setOpacity] = useState(0);
+  
+  useEffect(() => {
+    setOpacity(1);
+  }, []);
   
   return (
-    <div>
-      {features.map((feature, i) => (
-        <div
-          key={i}
-          className="slideup"
-          style={{ animationDelay: `${i * 0.1}s` }}
-        >
-          {feature}
-        </div>
-      ))}
+    <div style={{
+      opacity,
+      transition: 'opacity 0.5s ease-out'
+    }}>
+      {children}
     </div>
   );
 }
 ```
 
-## Custom Timing
+#### 3. Use External Animation Libraries
 
-Override animation duration:
+**Framer Motion** (Recommended):
+```bash
+bun add framer-motion
+```
 
 ```jsx
-<div 
-  className="fadein"
-  style={{ animationDuration: '1s' }}
->
-  Slow fade in
-</div>
+import { motion } from 'framer-motion';
+
+export default function Home() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <h1>Welcome to BertUI!</h1>
+    </motion.div>
+  );
+}
 ```
+
+**React Spring**:
+```bash
+bun add @react-spring/web
+```
+
+```jsx
+import { useSpring, animated } from '@react-spring/web';
+
+export default function Home() {
+  const springs = useSpring({
+    from: { opacity: 0 },
+    to: { opacity: 1 },
+  });
+
+  return <animated.div style={springs}>Hello!</animated.div>;
+}
+```
+
+## Previously Available Animations
+
+For reference, these were the animation classes that will return:
+
+### Fade & Scale
+- `.fadein` - Fade in (0.5s)
+- `.scalein` - Scale up (0.4s)
+
+### Slide
+- `.slideup` - Slide from bottom (0.5s)
+- `.slidedown` - Slide from top (0.5s)
+- `.moveright` - Slide from left (0.5s)
+- `.moveleft` - Slide from right (0.5s)
+
+### Bounce & Rotate
+- `.bouncein` - Bouncy entrance (0.6s)
+- `.rotatein` - Rotate entrance (0.6s)
+
+### Special Effects
+- `.pulse` - Continuous pulse (1.5s)
+- `.shake` - Shake effect (0.5s)
+- `.split` - Split text reveal (0.6s)
+
+## We Apologize
+
+We understand this is frustrating, especially if you were relying on these utilities. We're committed to bringing them back as soon as possible with proper build tool integration.
+
+Thank you for your patience and understanding! 🙏
 
 ## Next Steps
 
-- [See examples](../tutorials/animations-demo.html)
-- [Build a landing page](../tutorials/landing-page.html)
+- [File-Based Routing](./routing.html) - Still works perfectly!
+- [Build a Blog Tutorial](../tutorials/blog.html)
+- [API Reference](../api/reference.html)
+
+---
+
+**Follow updates:** Watch our [GitHub repository](https://github.com/BunElysiaReact/BERTUI) for announcements about when animations return.

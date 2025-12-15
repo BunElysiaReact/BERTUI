@@ -1,5 +1,5 @@
 // ==========================================
-// bertui-press/src/index.js
+// bertui-press/src/index.js (FIXED)
 // ==========================================
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync, statSync, cpSync } from 'fs';
 import { join, dirname, basename, relative, extname } from 'path';
@@ -173,7 +173,8 @@ export class BertUIPress {
         nav.push({
           type: 'file',
           name: title,
-          path: relativePath.replace(/\\/g, '/').replace('.md', '.html')
+          path: relativePath.replace(/\\/g, '/').replace('.md', '.html'),
+          fullPath: fullPath // Store full path for depth calculation
         });
       }
     }
@@ -217,7 +218,11 @@ export class BertUIPress {
 
     const html = marked(markdown);
     const title = this.extractTitle(markdown) || 'Documentation';
-    const currentPath = this.getOutputPath(filepath).replace(this.outDir, '');
+    const currentPath = this.getOutputPath(filepath);
+    
+    // Calculate depth from output directory
+    const relativeFromOut = relative(this.outDir, currentPath);
+    const depth = relativeFromOut.split('/').length - 1;
     
     return this.template
       .replace(/\{\{title\}\}/g, title)
@@ -227,11 +232,11 @@ export class BertUIPress {
       .replace(/\{\{themeColor\}\}/g, this.config.themeColor)
       .replace(/\{\{github\}\}/g, this.config.github)
       .replace('{{content}}', html)
-      .replace('{{navigation}}', this.renderNavigation(currentPath))
+      .replace('{{navigation}}', this.renderNavigation(currentPath, depth))
       .replace('{{config}}', JSON.stringify(this.config));
   }
 
-  renderNavigation(currentPath) {
+  renderNavigation(currentPath, currentDepth) {
     const renderItems = (items, level = 0) => {
       return items.map(item => {
         if (item.type === 'directory') {
@@ -244,9 +249,25 @@ export class BertUIPress {
             </div>
           `;
         } else {
-          const isActive = currentPath.includes(item.path);
+          // Calculate relative path from current page to target
+          const targetPath = this.getOutputPath(
+            join(this.docsDir, item.path.replace('.html', '.md'))
+          );
+          
+          const relativeFromCurrent = relative(
+            dirname(currentPath),
+            targetPath
+          ).replace(/\\/g, '/');
+          
+          // If it starts with '..' or doesn't start with '.', add './'
+          const href = relativeFromCurrent.startsWith('..')
+            ? relativeFromCurrent
+            : './' + relativeFromCurrent;
+          
+          const isActive = currentPath === targetPath;
+          
           return `
-            <a href="/${item.path}" 
+            <a href="${href}" 
                style="
                  display: block;
                  padding: 0.5rem;
@@ -287,6 +308,7 @@ export class BertUIPress {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <base href="/BERTUI/">
   <title>{{title}} - {{siteTitle}}</title>
   <meta name="description" content="{{description}}">
   <meta name="theme-color" content="{{themeColor}}">
@@ -495,4 +517,3 @@ export class BertUIPress {
 </html>`;
   }
 }
-

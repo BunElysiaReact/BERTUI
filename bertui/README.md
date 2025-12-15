@@ -2,30 +2,54 @@
 
 Lightning-fast React development powered by Bun.
 
+## ⚠️ Important Notice - CSS Animations Temporarily Unavailable
+
+**The built-in CSS animation utilities have been temporarily removed** due to compatibility issues with `bun.build`. We're working on a solution and they will be back in an upcoming release.
+
+**What this means:**
+- The 15+ animation classes (`.fadein`, `.scalein`, `.bouncein`, etc.) are not currently available
+- You can still use your own CSS animations or external libraries
+- All other BertUI features work normally
+
+**We apologize for any inconvenience caused.** This feature will return soon! 🚀
+
+---
+
 ## Features
 
 - ⚡ **Blazing Fast** - Built on Bun
-- 🎨 **Built-in Animations** - 15+ CSS utility classes
+- 📁 **File-Based Routing** - Zero config routing
 - 🔥 **Hot Module Replacement** - Instant updates
 - 📦 **Zero Config** - Works out of the box
 - 🚀 **Production Ready** - Optimized builds
 
-## Installation
+## Quick Start
+
+### Create New App (Recommended)
+```bash
+bunx create-bertui my-app
+cd my-app
+bun run dev
+```
+
+This creates a complete BertUI project with:
+- Pre-configured file structure
+- Sample pages with routing
+- Beautiful example components
+- All dependencies installed
+
+### Manual Installation (Advanced)
+If you want to configure everything yourself:
 ```bash
 bun add bertui react react-dom
 ```
 
-## Usage
-```javascript
-// src/main.jsx
-;
-import React from 'react';
-import ReactDOM from 'react-dom/client';
+Then you'll need to manually set up:
+- Project structure (`src/pages/`, `src/main.jsx`, etc.)
+- Router configuration
+- Build configuration
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <h1 className="split fadein">Hello BertUI!</h1>
-);
-```
+**Note:** We recommend using `bunx create-bertui` for the best experience!
 
 ## Commands
 ```bash
@@ -33,79 +57,46 @@ bertui dev         # Start dev server
 bertui build       # Build for production
 ```
 
-## CSS Classes
+## File-Based Routing
 
-- `.split` - Split text animation
-- `.moveright` - Slide from left
-- `.moveleft` - Slide from right
-- `.fadein` - Fade in
-- `.scalein` - Scale in
-- `.bouncein` - Bounce in
-- `.slideup` - Slide up
-- `.slidedown` - Slide down
-- `.rotatein` - Rotate in
-- `.pulse` - Pulse animation
-- `.shake` - Shake animation
+BertUI now has **complete file-based routing**! Here's what's included:
 
-# 🎉 BertUI Now Has File-Based Routing!
+### 📁 Features
 
-## What We Built
-
-I've added a **complete file-based routing system** to BertUI. Here's what's included:
-
-### 📁 New Files to Add
-
-1. **`src/router/router.js`** - Core routing logic
-   - Scans `src/pages/` directory
-   - Generates route definitions
-   - Creates React Router component
-   - Provides `Link` and `navigate` utilities
-
-2. **`src/client/compiler.js`** (updated) - Enhanced compiler
-   - Detects `pages/` directory
-   - Auto-generates router code
-   - Supports both routing and non-routing modes
-
-3. **`src/server/dev-server.js`** (updated) - Enhanced dev server
-   - Serves SPA-style HTML for all routes
-   - Notifies clients of route changes
-   - Better HMR integration
-
-## 🚀 Features
-
-### ✅ File-Based Routing
+#### ✅ File-Based Routing
 ```
 src/pages/index.jsx       → /
 src/pages/about.jsx       → /about
 src/pages/blog/index.jsx  → /blog
 ```
 
-### ✅ Dynamic Routes
+#### ✅ Dynamic Routes
 ```
 src/pages/user/[id].jsx           → /user/:id
 src/pages/blog/[slug].jsx         → /blog/:slug
 src/pages/shop/[cat]/[prod].jsx   → /shop/:cat/:prod
 ```
 
-### ✅ Navigation Components
+#### ✅ Navigation Components
 ```jsx
-import { Link, navigate } from '../.bertui/router';
+import { Link, navigate } from 'bertui/router';
 
 // Link component
-<Link href="/about">About</Link>
+<Link to="/about">About</Link>
 
 // Programmatic navigation
+const { navigate } = useRouter();
 navigate('/dashboard');
 ```
 
-### ✅ Route Parameters
+#### ✅ Route Parameters
 ```jsx
 export default function UserProfile({ params }) {
   return <div>User ID: {params.id}</div>;
 }
 ```
 
-### ✅ Backward Compatible
+#### ✅ Backward Compatible
 - Still works with `src/main.jsx` if no `pages/` directory
 - Automatically detects routing mode
 - No breaking changes!
@@ -139,44 +130,31 @@ export default function UserProfile({ params }) {
    - Client-side routing handles navigation
    - HMR updates routes on file changes
 
-## 🔧 Integration Steps
-
-### 1. Add Router Files
-Copy these files to your BertUI project:
-- `src/router/router.js` (new)
-- `src/client/compiler.js` (replace)
-- `src/server/dev-server.js` (replace)
-
-### 2. Update Dependencies
-No new dependencies needed! Uses existing React ecosystem.
-
-### 3. Test It
-```bash
-# Create example pages
-mkdir -p src/pages
-echo 'export default () => <h1>Home</h1>' > src/pages/index.jsx
-echo 'export default () => <h1>About</h1>' > src/pages/about.jsx
-
-# Start dev server
-bertui dev
-```
-
-### 4. Watch the Magic
-- Navigate to `http://localhost:3000` → Home page
-- Click links → No page reload!
-- Edit files → Instant HMR!
-- Check console → Route discovery logs
-
-## 🎨 Works with BertUI Animations
+## 🎓 Usage Example
 
 ```jsx
+// src/pages/index.jsx
+import { Link } from 'bertui/router';
+
 export default function Home() {
   return (
     <div>
-      <h1 className="split fadein" data-text="Welcome!">
-        Welcome!
-      </h1>
-      <p className="moveright">Lightning fast! ⚡</p>
+      <h1>Welcome to My App!</h1>
+      <nav>
+        <Link to="/about">About</Link>
+        <Link to="/blog">Blog</Link>
+        <Link to="/user/123">My Profile</Link>
+      </nav>
+    </div>
+  );
+}
+
+// src/pages/user/[id].jsx
+export default function UserProfile({ params }) {
+  return (
+    <div>
+      <h1>User {params.id}</h1>
+      <p>Profile page for user {params.id}</p>
     </div>
   );
 }
@@ -210,34 +188,13 @@ Update `build.js` to:
 - Create optimized bundles per route
 - Handle dynamic routes appropriately
 
-## 🎓 Usage Example
+## 🏁 Conclusion
 
-```jsx
-// src/pages/index.jsx
-import { Link } from '../.bertui/router';
-
-export default function Home() {
-  return (
-    <div className="fadein">
-      <h1>Welcome to My App!</h1>
-      <nav>
-        <Link href="/about">About</Link>
-        <Link href="/blog">Blog</Link>
-        <Link href="/user/123">My Profile</Link>
-      </nav>
-    </div>
-  );
-}
-
-// src/pages/user/[id].jsx
-export default function UserProfile({ params }) {
-  return (
-    <div className="scalein">
-      <h1>User {params.id}</h1>
-      <p>Profile page for user {params.id}</p>
-    </div>
-  );
-}
+BertUI now has **production-ready file-based routing** that's:
+- ⚡ **Fast** - Built on Bun
+- 🎯 **Simple** - Zero config
+- 💪 **Powerful** - Dynamic routes, params, navigation
+- 🔥 **Modern** - HMR, code splitting, SPA
 
 ## License
 

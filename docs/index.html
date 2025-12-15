@@ -7,7 +7,6 @@
   <meta name="description" content="Documentation powered by BertUI-Press">
   <meta name="theme-color" content="#667eea">
   <style>
-    /* ... (CSS is unchanged) ... */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     
     body {
@@ -204,7 +203,7 @@
                 📁 Api
               </div>
               
-            <a href="api/reference.html" 
+            <a href="/api/reference.html" 
                style="
                  display: block;
                  padding: 0.5rem;
@@ -229,7 +228,7 @@
                 📁 Getting Started
               </div>
               
-            <a href="getting-started/first-page.html" 
+            <a href="/getting-started/first-page.html" 
                style="
                  display: block;
                  padding: 0.5rem;
@@ -247,7 +246,7 @@
               📄 Your First Page
             </a>
           
-            <a href="getting-started/installation.html" 
+            <a href="/getting-started/installation.html" 
                style="
                  display: block;
                  padding: 0.5rem;
@@ -272,7 +271,7 @@
                 📁 Guides
               </div>
               
-            <a href="guides/animations.html" 
+            <a href="/guides/animations.html" 
                style="
                  display: block;
                  padding: 0.5rem;
@@ -290,7 +289,7 @@
               📄 Built-in Animations
             </a>
           
-            <a href="guides/routing.html" 
+            <a href="/guides/routing.html" 
                style="
                  display: block;
                  padding: 0.5rem;
@@ -315,7 +314,7 @@
                 📁 Tutorials
               </div>
               
-            <a href="tutorials/blog.html" 
+            <a href="/tutorials/blog.html" 
                style="
                  display: block;
                  padding: 0.5rem;
@@ -335,7 +334,7 @@
           
             </div>
           
-            <a href="index.html" 
+            <a href="/index.html" 
                style="
                  display: block;
                  padding: 0.5rem;
@@ -361,14 +360,16 @@
     <main class="content">
       <h1>BertUI Documentation</h1>
 <p>Welcome to <strong>BertUI</strong> - the lightning-fast React development framework powered by Bun.</p>
+<h2>⚠️ Important Notice</h2>
+<p><strong>Built-in CSS animations are temporarily unavailable</strong> due to compatibility issues with <code>bun.build</code>. They will return in an upcoming release. <a href="./guides/animations.html">Learn more</a></p>
 <h2>Why BertUI?</h2>
 <p>BertUI combines the incredible speed of Bun with the elegance of React, giving you:</p>
 <ul>
 <li>⚡ <strong>Instant Startup</strong> - Dev server starts in &lt;100ms</li>
 <li>📁 <strong>File-Based Routing</strong> - Just create files, routes happen automatically</li>
 <li>🔥 <strong>Hot Module Replacement</strong> - See changes instantly</li>
-<li>🎨 <strong>Built-in Animations</strong> - 15+ CSS utility classes ready to use</li>
 <li>📦 <strong>Zero Config</strong> - Works out of the box</li>
+<li>🚀 <strong>Production Ready</strong> - Optimized builds with code splitting</li>
 </ul>
 <h2>Quick Start</h2>
 <p>Get started in 30 seconds:</p>
@@ -377,18 +378,71 @@ cd my-app
 bun run dev
 </code></pre>
 <p>Open <a href="http://localhost:3000">http://localhost:3000</a> and start building!</p>
-<h2>Next Steps</h2>
+<h2>What You Get</h2>
+<p>When you run <code>bunx create-bertui</code>, you get:</p>
+<p>✅ <strong>Complete project structure</strong> with best practices<br>✅ <strong>File-based routing</strong> already configured<br>✅ <strong>Sample pages</strong> showing routing in action<br>✅ <strong>Beautiful example components</strong><br>✅ <strong>All dependencies</strong> pre-installed<br>✅ <strong>Zero configuration</strong> needed</p>
+<h2>Features</h2>
+<h3>📁 File-Based Routing</h3>
+<pre><code>src/pages/
+├── index.jsx              → /
+├── about.jsx              → /about
+├── blog/
+│   ├── index.jsx         → /blog
+│   └── [slug].jsx        → /blog/:slug (dynamic!)
+└── user/[id]/posts.jsx   → /user/:id/posts
+</code></pre>
+<p>Just create files. Routes happen automatically. Magic! ✨</p>
+<h3>🔥 Hot Module Replacement</h3>
+<p>Edit your files and see changes <strong>instantly</strong> without losing component state. No refresh needed!</p>
+<h3>⚡ Lightning Fast</h3>
 <ul>
-<li><a href="./getting-started/installation.html">Installation Guide</a></li>
-<li><a href="./guides/routing.html">File-Based Routing</a></li>
-<li><a href="./guides/animations.html">CSS Animations</a></li>
-<li><a href="./api/reference.html">API Reference</a></li>
+<li><strong>&lt;100ms</strong> dev server startup</li>
+<li><strong>&lt;50ms</strong> hot module reload  </li>
+<li><strong>Sub-second</strong> production builds</li>
+<li>Powered by Bun&#39;s native speed</li>
+</ul>
+<h3>📦 Production Ready</h3>
+<pre><code class="language-bash">bun run build
+</code></pre>
+<p>Creates optimized bundles with:</p>
+<ul>
+<li>✅ Automatic code splitting</li>
+<li>✅ Minification</li>
+<li>✅ Tree shaking</li>
+<li>✅ Source maps</li>
+</ul>
+<h2>Next Steps</h2>
+<h3>Getting Started</h3>
+<ul>
+<li><a href="./getting-started/installation.html">Installation Guide</a> - Set up BertUI</li>
+<li><a href="./getting-started/first-page.html">Your First Page</a> - Create a simple page</li>
+</ul>
+<h3>Guides</h3>
+<ul>
+<li><a href="./guides/routing.html">File-Based Routing</a> - Master routing</li>
+<li><del><a href="./guides/animations.html">CSS Animations</a></del> - Temporarily unavailable (see alternatives)</li>
+</ul>
+<h3>Tutorials</h3>
+<ul>
+<li><a href="./tutorials/blog.html">Build a Blog</a> - Step-by-step tutorial</li>
+</ul>
+<h3>Reference</h3>
+<ul>
+<li><a href="./api/reference.html">API Reference</a> - Complete API docs</li>
 </ul>
 <h2>Community</h2>
 <ul>
-<li><a href="https://github.com/BunElysiaReact/BERTUI">GitHub</a></li>
-<li><a href="https://github.com/BunElysiaReact/BERTUI/issues">Report Issues</a></li>
-<li><a href="https://github.com/BunElysiaReact/BERTUI/discussions">Discussions</a></li>
+<li><a href="https://github.com/BunElysiaReact/BERTUI">GitHub</a> - Source code &amp; issues</li>
+<li><a href="https://github.com/BunElysiaReact/BERTUI/issues">Report Issues</a> - Found a bug?</li>
+<li><a href="https://github.com/BunElysiaReact/BERTUI/discussions">Discussions</a> - Ask questions</li>
+</ul>
+<h2>Support the Project</h2>
+<p>If you find BertUI useful:</p>
+<ul>
+<li>⭐ Star us on <a href="https://github.com/BunElysiaReact/BERTUI">GitHub</a></li>
+<li>🐛 Report bugs and request features</li>
+<li>📢 Share with other developers</li>
+<li>💡 Contribute improvements</li>
 </ul>
 <hr>
 <p><strong>Built with ⚡ by developers who love speed</strong></p>
