@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Build a Blog - Documentation</title>
+  <meta name="description" content="Documentation powered by BertUI-Press">
+  <meta name="theme-color" content="#667eea">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      line-height: 1.7;
+      color: #333;
+      background: #fafafa;
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      background: white;
+      border-right: 1px solid #e5e7eb;
+      padding: 2rem;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .sidebar-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 2px solid #e5e7eb;
+    }
+
+    .logo {
+      font-size: 2rem;
+    }
+
+    .site-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #667eea;
+    }
+
+    .content {
+      max-width: 900px;
+      padding: 3rem;
+      background: white;
+      margin: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    h1, h2, h3, h4 {
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      color: #667eea;
+      border-bottom: 3px solid #667eea;
+      padding-bottom: 0.5rem;
+      margin-top: 0;
+    }
+
+    h2 {
+      font-size: 2rem;
+      color: #764ba2;
+      border-bottom: 2px solid #e5e7eb;
+      padding-bottom: 0.5rem;
+    }
+
+    h3 { font-size: 1.5rem; color: #555; }
+    h4 { font-size: 1.25rem; color: #666; }
+
+    p { margin-bottom: 1.25rem; font-size: 1.05rem; }
+
+    code {
+      background: #f4f4f4;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9em;
+      color: #e83e8c;
+    }
+
+    pre {
+      background: #1a1a1a;
+      color: #4ade80;
+      padding: 1.5rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 1.5rem 0;
+      border: 1px solid #333;
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      color: #4ade80;
+      font-size: 0.95rem;
+    }
+
+    a {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    ul, ol {
+      margin-left: 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+
+    li {
+      margin-bottom: 0.5rem;
+    }
+
+    blockquote {
+      border-left: 4px solid #667eea;
+      padding-left: 1.5rem;
+      margin: 1.5rem 0;
+      color: #666;
+      font-style: italic;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+    }
+
+    th, td {
+      border: 1px solid #e5e7eb;
+      padding: 0.75rem;
+      text-align: left;
+    }
+
+    th {
+      background: #f9fafb;
+      font-weight: 600;
+    }
+
+    .github-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: #333;
+      color: white;
+      border-radius: 6px;
+      margin-top: 1rem;
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+      
+      .sidebar {
+        position: static;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid #e5e7eb;
+      }
+      
+      .content {
+        margin: 1rem;
+        padding: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">⚡</div>
+        <div class="site-title">Documentation</div>
+      </div>
+      
+      <nav>
+        
+            <div style="margin-left: 0rem;">
+              <div style="font-weight: 600; margin: 0.5rem 0; color: #667eea;">
+                📁 Api
+              </div>
+              
+            <a href="/api/reference.html" 
+               style="
+                 display: block;
+                 padding: 0.5rem;
+                 margin-left: 1rem;
+                 color: #666;
+                 text-decoration: none;
+                 border-left: 3px solid transparent;
+                 background: transparent;
+                 border-radius: 4px;
+                 transition: all 0.2s;
+               "
+               onmouseover="this.style.background='rgba(102, 126, 234, 0.1)'"
+               onmouseout="this.style.background='transparent'"
+            >
+              📄 API Reference
+            </a>
+          
+            </div>
+          
+            <div style="margin-left: 0rem;">
+              <div style="font-weight: 600; margin: 0.5rem 0; color: #667eea;">
+                📁 Getting Started
+              </div>
+              
+            <a href="/getting-started/first-page.html" 
+               style="
+                 display: block;
+                 padding: 0.5rem;
+                 margin-left: 1rem;
+                 color: #666;
+                 text-decoration: none;
+                 border-left: 3px solid transparent;
+                 background: transparent;
+                 border-radius: 4px;
+                 transition: all 0.2s;
+               "
+               onmouseover="this.style.background='rgba(102, 126, 234, 0.1)'"
+               onmouseout="this.style.background='transparent'"
+            >
+              📄 Your First Page
+            </a>
+          
+            <a href="/getting-started/installation.html" 
+               style="
+                 display: block;
+                 padding: 0.5rem;
+                 margin-left: 1rem;
+                 color: #666;
+                 text-decoration: none;
+                 border-left: 3px solid transparent;
+                 background: transparent;
+                 border-radius: 4px;
+                 transition: all 0.2s;
+               "
+               onmouseover="this.style.background='rgba(102, 126, 234, 0.1)'"
+               onmouseout="this.style.background='transparent'"
+            >
+              📄 Installation
+            </a>
+          
+            </div>
+          
+            <div style="margin-left: 0rem;">
+              <div style="font-weight: 600; margin: 0.5rem 0; color: #667eea;">
+                📁 Guides
+              </div>
+              
+            <a href="/guides/animations.html" 
+               style="
+                 display: block;
+                 padding: 0.5rem;
+                 margin-left: 1rem;
+                 color: #666;
+                 text-decoration: none;
+                 border-left: 3px solid transparent;
+                 background: transparent;
+                 border-radius: 4px;
+                 transition: all 0.2s;
+               "
+               onmouseover="this.style.background='rgba(102, 126, 234, 0.1)'"
+               onmouseout="this.style.background='transparent'"
+            >
+              📄 Built-in Animations
+            </a>
+          
+            <a href="/guides/routing.html" 
+               style="
+                 display: block;
+                 padding: 0.5rem;
+                 margin-left: 1rem;
+                 color: #666;
+                 text-decoration: none;
+                 border-left: 3px solid transparent;
+                 background: transparent;
+                 border-radius: 4px;
+                 transition: all 0.2s;
+               "
+               onmouseover="this.style.background='rgba(102, 126, 234, 0.1)'"
+               onmouseout="this.style.background='transparent'"
+            >
+              📄 File-Based Routing
+            </a>
+          
+            </div>
+          
+            <div style="margin-left: 0rem;">
+              <div style="font-weight: 600; margin: 0.5rem 0; color: #667eea;">
+                📁 Tutorials
+              </div>
+              
+            <a href="/tutorials/blog.html" 
+               style="
+                 display: block;
+                 padding: 0.5rem;
+                 margin-left: 1rem;
+                 color: #667eea;
+                 text-decoration: none;
+                 border-left: 3px solid #667eea;
+                 background: rgba(102, 126, 234, 0.1);
+                 border-radius: 4px;
+                 transition: all 0.2s;
+               "
+               onmouseover="this.style.background='rgba(102, 126, 234, 0.1)'"
+               onmouseout="this.style.background='rgba(102, 126, 234, 0.1)'"
+            >
+              📄 Build a Blog
+            </a>
+          
+            </div>
+          
+            <a href="/index.html" 
+               style="
+                 display: block;
+                 padding: 0.5rem;
+                 margin-left: 0rem;
+                 color: #666;
+                 text-decoration: none;
+                 border-left: 3px solid transparent;
+                 background: transparent;
+                 border-radius: 4px;
+                 transition: all 0.2s;
+               "
+               onmouseover="this.style.background='rgba(102, 126, 234, 0.1)'"
+               onmouseout="this.style.background='transparent'"
+            >
+              📄 BertUI Documentation
+            </a>
+          
+      </nav>
+
+      
+    </aside>
+
+    <main class="content">
+      <p>// ==========================================
+// docs/tutorials/blog.md
+// ==========================================</p>
+<h1>Build a Blog</h1>
+<p>Let&#39;s build a simple blog with BertUI.</p>
+<h2>Step 1: Create Pages</h2>
+<p>Create these files:</p>
+<pre><code>src/pages/blog/
+├── index.jsx      # Blog list
+└── [slug].jsx     # Individual post
+</code></pre>
+<h2>Step 2: Blog List Page</h2>
+<pre><code class="language-jsx">// src/pages/blog/index.jsx
+import { Link } from &#39;bertui/router&#39;;
+
+const posts = [
+  { slug: &#39;first-post&#39;, title: &#39;My First Post&#39;, date: &#39;2024-01-01&#39; },
+  { slug: &#39;second-post&#39;, title: &#39;Second Post&#39;, date: &#39;2024-01-02&#39; },
+];
+
+export default function Blog() {
+  return (
+    &lt;div style={{ padding: &#39;2rem&#39; }}&gt;
+      &lt;h1 className=&quot;fadein&quot;&gt;Blog&lt;/h1&gt;
+      
+      &lt;div&gt;
+        {posts.map(post =&gt; (
+          &lt;article 
+            key={post.slug}
+            className=&quot;slideup&quot;
+            style={{
+              padding: &#39;1.5rem&#39;,
+              margin: &#39;1rem 0&#39;,
+              border: &#39;1px solid #e5e7eb&#39;,
+              borderRadius: &#39;8px&#39;
+            }}
+          &gt;
+            &lt;h2&gt;
+              &lt;Link to={`/blog/${post.slug}`}&gt;
+                {post.title}
+              &lt;/Link&gt;
+            &lt;/h2&gt;
+            &lt;p style={{ color: &#39;#666&#39; }}&gt;{post.date}&lt;/p&gt;
+          &lt;/article&gt;
+        ))}
+      &lt;/div&gt;
+    &lt;/div&gt;
+  );
+}
+</code></pre>
+<h2>Step 3: Individual Post Page</h2>
+<pre><code class="language-jsx">// src/pages/blog/[slug].jsx
+import { Link } from &#39;bertui/router&#39;;
+
+const posts = {
+  &#39;first-post&#39;: {
+    title: &#39;My First Post&#39;,
+    content: &#39;This is my first blog post!&#39;,
+    date: &#39;2024-01-01&#39;
+  },
+  &#39;second-post&#39;: {
+    title: &#39;Second Post&#39;,
+    content: &#39;Another great post.&#39;,
+    date: &#39;2024-01-02&#39;
+  }
+};
+
+export default function BlogPost({ params }) {
+  const post = posts[params.slug];
+  
+  if (!post) {
+    return &lt;div&gt;Post not found&lt;/div&gt;;
+  }
+  
+  return (
+    &lt;article style={{ padding: &#39;2rem&#39; }}&gt;
+      &lt;h1 className=&quot;fadein&quot;&gt;{post.title}&lt;/h1&gt;
+      &lt;p style={{ color: &#39;#666&#39; }}&gt;{post.date}&lt;/p&gt;
+      
+      &lt;div className=&quot;slideup&quot; style={{ marginTop: &#39;2rem&#39; }}&gt;
+        {post.content}
+      &lt;/div&gt;
+      
+      &lt;Link to=&quot;/blog&quot; style={{ marginTop: &#39;2rem&#39;, display: &#39;block&#39; }}&gt;
+        ← Back to Blog
+      &lt;/Link&gt;
+    &lt;/article&gt;
+  );
+}
+</code></pre>
+<h2>Step 4: Test It</h2>
+<ol>
+<li>Navigate to <code>/blog</code> - see all posts</li>
+<li>Click a post - see individual post</li>
+<li>Click back - return to list</li>
+</ol>
+<p>Done! You&#39;ve built a blog with file-based routing.</p>
+<h2>Next Steps</h2>
+<ul>
+<li><a href="./advanced-blog.html">Add more features</a></li>
+<li><a href="../guides/deployment.html">Deploy your blog</a></li>
+</ul>
+
+    </main>
+  </div>
+</body>
+</html>

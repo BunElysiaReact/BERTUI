@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Reference - Documentation</title>
+  <meta name="description" content="Documentation powered by BertUI-Press">
+  <meta name="theme-color" content="#667eea">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      line-height: 1.7;
+      color: #333;
+      background: #fafafa;
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      background: white;
+      border-right: 1px solid #e5e7eb;
+      padding: 2rem;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .sidebar-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 2px solid #e5e7eb;
+    }
+
+    .logo {
+      font-size: 2rem;
+    }
+
+    .site-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #667eea;
+    }
+
+    .content {
+      max-width: 900px;
+      padding: 3rem;
+      background: white;
+      margin: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    h1, h2, h3, h4 {
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      color: #667eea;
+      border-bottom: 3px solid #667eea;
+      padding-bottom: 0.5rem;
+      margin-top: 0;
+    }
+
+    h2 {
+      font-size: 2rem;
+      color: #764ba2;
+      border-bottom: 2px solid #e5e7eb;
+      padding-bottom: 0.5rem;
+    }
+
+    h3 { font-size: 1.5rem; color: #555; }
+    h4 { font-size: 1.25rem; color: #666; }
+
+    p { margin-bottom: 1.25rem; font-size: 1.05rem; }
+
+    code {
+      background: #f4f4f4;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9em;
+      color: #e83e8c;
+    }
+
+    pre {
+      background: #1a1a1a;
+      color: #4ade80;
+      padding: 1.5rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 1.5rem 0;
+      border: 1px solid #333;
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      color: #4ade80;
+      font-size: 0.95rem;
+    }
+
+    a {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    ul, ol {
+      margin-left: 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+
+    li {
+      margin-bottom: 0.5rem;
+    }
+
+    blockquote {
+      border-left: 4px solid #667eea;
+      padding-left: 1.5rem;
+      margin: 1.5rem 0;
+      color: #666;
+      font-style: italic;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+    }
+
+    th, td {
+      border: 1px solid #e5e7eb;
+      padding: 0.75rem;
+      text-align: left;
+    }
+
+    th {
+      background: #f9fafb;
+      font-weight: 600;
+    }
+
+    .github-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: #333;
+      color: white;
+      border-radius: 6px;
+      margin-top: 1rem;
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+      
+      .sidebar {
+        position: static;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid #e5e7eb;
+      }
+      
+      .content {
+        margin: 1rem;
+        padding: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">⚡</div>
+        <div class="site-title">Documentation</div>
+      </div>
+      
+      <nav>
+        
+            <div style="margin-left: 0rem;">
+              <div style="font-weight: 600; margin: 0.5rem 0; color: #667eea;">
+                📁 Api
+              </div>
+              
+            <a href="/api/reference.html" 
+               style="
+                 display: block;
+                 padding: 0.5rem;
+                 margin-left: 1rem;
+                 color: #667eea;
+                 text-decoration: none;
+                 border-left: 3px solid #667eea;
+                 background: rgba(102, 126, 234, 0.1);
+                 border-radius: 4px;
+                 transition: all 0.2s;
+               "
+               onmouseover="this.style.background='rgba(102, 126, 234, 0.1)'"
+               onmouseout="this.style.background='rgba(102, 126, 234, 0.1)'"
+            >
+              📄 API Reference
+            </a>
+          
+            </div>
+          
+            <div style="margin-left: 0rem;">
+              <div style="font-weight: 600; margin: 0.5rem 0; color: #667eea;">
+                📁 Getting Started
+              </div>
+              
+            <a href="/getting-started/first-page.html" 
+               style="
+                 display: block;
+                 padding: 0.5rem;
+                 margin-left: 1rem;
+                 color: #666;
+                 text-decoration: none;
+                 border-left: 3px solid transparent;
+                 background: transparent;
+                 border-radius: 4px;
+                 transition: all 0.2s;
+               "
+               onmouseover="this.style.background='rgba(102, 126, 234, 0.1)'"
+               onmouseout="this.style.background='transparent'"
+            >
+              📄 Your First Page
+            </a>
+          
+            <a href="/getting-started/installation.html" 
+               style="
+                 display: block;
+                 padding: 0.5rem;
+                 margin-left: 1rem;
+                 color: #666;
+                 text-decoration: none;
+                 border-left: 3px solid transparent;
+                 background: transparent;
+                 border-radius: 4px;
+                 transition: all 0.2s;
+               "
+               onmouseover="this.style.background='rgba(102, 126, 234, 0.1)'"
+               onmouseout="this.style.background='transparent'"
+            >
+              📄 Installation
+            </a>
+          
+            </div>
+          
+            <div style="margin-left: 0rem;">
+              <div style="font-weight: 600; margin: 0.5rem 0; color: #667eea;">
+                📁 Guides
+              </div>
+              
+            <a href="/guides/animations.html" 
+               style="
+                 display: block;
+                 padding: 0.5rem;
+                 margin-left: 1rem;
+                 color: #666;
+                 text-decoration: none;
+                 border-left: 3px solid transparent;
+                 background: transparent;
+                 border-radius: 4px;
+                 transition: all 0.2s;
+               "
+               onmouseover="this.style.background='rgba(102, 126, 234, 0.1)'"
+               onmouseout="this.style.background='transparent'"
+            >
+              📄 Built-in Animations
+            </a>
+          
+            <a href="/guides/routing.html" 
+               style="
+                 display: block;
+                 padding: 0.5rem;
+                 margin-left: 1rem;
+                 color: #666;
+                 text-decoration: none;
+                 border-left: 3px solid transparent;
+                 background: transparent;
+                 border-radius: 4px;
+                 transition: all 0.2s;
+               "
+               onmouseover="this.style.background='rgba(102, 126, 234, 0.1)'"
+               onmouseout="this.style.background='transparent'"
+            >
+              📄 File-Based Routing
+            </a>
+          
+            </div>
+          
+            <div style="margin-left: 0rem;">
+              <div style="font-weight: 600; margin: 0.5rem 0; color: #667eea;">
+                📁 Tutorials
+              </div>
+              
+            <a href="/tutorials/blog.html" 
+               style="
+                 display: block;
+                 padding: 0.5rem;
+                 margin-left: 1rem;
+                 color: #666;
+                 text-decoration: none;
+                 border-left: 3px solid transparent;
+                 background: transparent;
+                 border-radius: 4px;
+                 transition: all 0.2s;
+               "
+               onmouseover="this.style.background='rgba(102, 126, 234, 0.1)'"
+               onmouseout="this.style.background='transparent'"
+            >
+              📄 Build a Blog
+            </a>
+          
+            </div>
+          
+            <a href="/index.html" 
+               style="
+                 display: block;
+                 padding: 0.5rem;
+                 margin-left: 0rem;
+                 color: #666;
+                 text-decoration: none;
+                 border-left: 3px solid transparent;
+                 background: transparent;
+                 border-radius: 4px;
+                 transition: all 0.2s;
+               "
+               onmouseover="this.style.background='rgba(102, 126, 234, 0.1)'"
+               onmouseout="this.style.background='transparent'"
+            >
+              📄 BertUI Documentation
+            </a>
+          
+      </nav>
+
+      
+    </aside>
+
+    <main class="content">
+      <p>// ==========================================
+// docs/api/reference.md
+// ==========================================</p>
+<h1>API Reference</h1>
+<p>Complete API documentation for BertUI.</p>
+<h2>Router</h2>
+<h3>Link Component</h3>
+<p>Client-side navigation component.</p>
+<pre><code class="language-jsx">import { Link } from &#39;bertui/router&#39;;
+
+&lt;Link to=&quot;/about&quot;&gt;About&lt;/Link&gt;
+</code></pre>
+<p><strong>Props:</strong></p>
+<ul>
+<li><code>to</code> (string, required) - Destination path</li>
+<li><code>...props</code> (any) - Additional HTML anchor props</li>
+</ul>
+<h3>useRouter Hook</h3>
+<p>Access router state and navigation function.</p>
+<pre><code class="language-jsx">import { useRouter } from &#39;bertui/router&#39;;
+
+function MyComponent() {
+  const { navigate, pathname, params, currentRoute } = useRouter();
+  
+  return &lt;div&gt;Current: {pathname}&lt;/div&gt;;
+}
+</code></pre>
+<p><strong>Returns:</strong></p>
+<ul>
+<li><code>navigate(path: string)</code> - Navigate to a path</li>
+<li><code>pathname</code> (string) - Current pathname</li>
+<li><code>params</code> (object) - Route parameters</li>
+<li><code>currentRoute</code> (object) - Current route info</li>
+</ul>
+<h2>Configuration</h2>
+<h3>bertui.config.js</h3>
+<p>Optional configuration file in project root.</p>
+<pre><code class="language-javascript">export default {
+  meta: {
+    title: &quot;My App&quot;,
+    description: &quot;App description&quot;,
+    keywords: &quot;react, bun&quot;,
+    author: &quot;Your Name&quot;,
+    themeColor: &quot;#667eea&quot;,
+    lang: &quot;en&quot;,
+    ogTitle: &quot;Open Graph title&quot;,
+    ogDescription: &quot;OG description&quot;,
+    ogImage: &quot;/og-image.png&quot;
+  },
+  
+  appShell: {
+    loading: true,
+    loadingText: &quot;Loading...&quot;,
+    backgroundColor: &quot;#ffffff&quot;
+  }
+};
+</code></pre>
+<h2>CSS Classes</h2>
+<p>All built-in animation utilities:</p>
+<ul>
+<li><code>.fadein</code> - Fade in (0.5s)</li>
+<li><code>.scalein</code> - Scale up (0.4s)</li>
+<li><code>.bouncein</code> - Bounce (0.6s)</li>
+<li><code>.moveright</code> - Slide from left (0.5s)</li>
+<li><code>.moveleft</code> - Slide from right (0.5s)</li>
+<li><code>.slideup</code> - Slide from bottom (0.5s)</li>
+<li><code>.slidedown</code> - Slide from top (0.5s)</li>
+<li><code>.rotatein</code> - Rotate entrance (0.6s)</li>
+<li><code>.pulse</code> - Pulsing loop (1.5s)</li>
+<li><code>.shake</code> - Shake effect (0.5s)</li>
+<li><code>.split</code> - Split text reveal (0.6s)</li>
+</ul>
+<h2>Commands</h2>
+<h3>Development</h3>
+<pre><code class="language-bash">bun run dev              # Start dev server
+bun run dev --port 8080  # Custom port
+</code></pre>
+<h3>Production</h3>
+<pre><code class="language-bash">bun run build    # Build for production
+bun run preview  # Preview production build
+</code></pre>
+<h2>Next Steps</h2>
+<ul>
+<li><a href="../tutorials/complete-app.html">See full examples</a></li>
+<li><a href="../guides/deployment.html">Deployment guide</a></li>
+</ul>
+
+    </main>
+  </div>
+</body>
+</html>
