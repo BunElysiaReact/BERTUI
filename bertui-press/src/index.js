@@ -43,7 +43,8 @@ export class BertUIPress {
       logo: '⚡',
       themeColor: '#667eea',
       github: '',
-      navigation: []
+      navigation: [],
+      baseUrl: '' // Add baseUrl for GitHub Pages (e.g., '/BERTUI' or '')
     };
   }
 
@@ -237,6 +238,8 @@ export class BertUIPress {
   }
 
   renderNavigation(currentPath, currentDepth) {
+    const baseUrl = this.config.baseUrl || '';
+    
     const renderItems = (items, level = 0) => {
       return items.map(item => {
         if (item.type === 'directory') {
@@ -249,20 +252,16 @@ export class BertUIPress {
             </div>
           `;
         } else {
-          // Calculate relative path from current page to target
+          // For GitHub Pages, use repository-relative paths
           const targetPath = this.getOutputPath(
             join(this.docsDir, item.path.replace('.html', '.md'))
           );
           
-          const relativeFromCurrent = relative(
-            dirname(currentPath),
-            targetPath
-          ).replace(/\\/g, '/');
+          // Get path relative to output directory (for GitHub Pages)
+          const relativeFromOut = relative(this.outDir, targetPath).replace(/\\/g, '/');
           
-          // If it starts with '..' or doesn't start with '.', add './'
-          const href = relativeFromCurrent.startsWith('..')
-            ? relativeFromCurrent
-            : './' + relativeFromCurrent;
+          // Use repository root relative path with baseUrl
+          const href = baseUrl + '/' + relativeFromOut;
           
           const isActive = currentPath === targetPath;
           
@@ -308,7 +307,6 @@ export class BertUIPress {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <base href="/BERTUI/">
   <title>{{title}} - {{siteTitle}}</title>
   <meta name="description" content="{{description}}">
   <meta name="theme-color" content="{{themeColor}}">

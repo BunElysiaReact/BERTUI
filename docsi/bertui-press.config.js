@@ -4,6 +4,11 @@ export default {
   logo: "⚡",
   themeColor: "#667eea",
   github: "https://github.com/BunElysiaReact/BERTUI",
-  docsDir: "docs",
-  outDir: "dist/docs"
+  docsDir: "docsi",
+  outDir: "docs",
+  
+  // IMPORTANT: Set baseUrl for GitHub Pages
+  // Format: '/repository-name' (no trailing slash)
+  // Leave empty ('') if deploying to custom domain or root
+  baseUrl: "/BERTUI"
 };
