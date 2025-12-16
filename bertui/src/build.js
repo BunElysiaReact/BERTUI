@@ -11,7 +11,6 @@ export async function buildProduction(options = {}) {
   
   logger.bigLog('BUILDING FOR PRODUCTION', { color: 'green' });
   
-  // Clean folders
   if (existsSync(buildDir)) {
     rmSync(buildDir, { recursive: true });
   }
@@ -26,16 +25,13 @@ export async function buildProduction(options = {}) {
   const startTime = Date.now();
   
   try {
-    // Step 1: Compile for production
     logger.info('Step 1: Compiling for production...');
     await compileForBuild(root, buildDir);
     logger.success('Production compilation complete');
     
-    // Step 2: Build CSS with Lightning CSS
     logger.info('Step 2: Building CSS with Lightning CSS...');
     await buildAllCSS(root, outDir);
     
-    // Step 3: Copy public assets if they exist
     const publicDir = join(root, 'public');
     if (existsSync(publicDir)) {
       logger.info('Step 3: Copying public assets...');
@@ -45,7 +41,6 @@ export async function buildProduction(options = {}) {
       logger.info('Step 3: No public directory found, skipping...');
     }
     
-    // Step 4: Build JavaScript with Bun's bundler
     logger.info('Step 4: Bundling JavaScript with Bun...');
     const buildEntry = join(buildDir, 'main.js');
     
@@ -54,7 +49,6 @@ export async function buildProduction(options = {}) {
       process.exit(1);
     }
     
-    // FIXED: Let Bun handle ALL imports with proper externals
     const result = await Bun.build({
       entrypoints: [buildEntry],
       outdir: join(outDir, 'assets'),
@@ -67,7 +61,6 @@ export async function buildProduction(options = {}) {
         chunk: 'chunks/[name]-[hash].js',
         asset: '[name]-[hash].[ext]'
       },
-      // FIXED: Use CDN externals - Bun handles tree shaking automatically
       external: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime']
     });
     
@@ -79,11 +72,9 @@ export async function buildProduction(options = {}) {
     
     logger.success('JavaScript bundled with tree-shaking');
     
-    // Step 5: Generate index.html
     logger.info('Step 5: Generating index.html...');
     await generateProductionHTML(root, outDir, result);
     
-    // Step 6: Clean up build folder
     rmSync(buildDir, { recursive: true });
     logger.info('Cleaned up .bertuibuild/');
     
@@ -91,13 +82,11 @@ export async function buildProduction(options = {}) {
     logger.success(`✨ Build complete in ${duration}ms`);
     logger.info(`📦 Output: ${outDir}`);
     
-    // Display build stats
     logger.table(result.outputs.map(o => ({
       file: o.path.replace(outDir, ''),
       size: `${(o.size / 1024).toFixed(2)} KB`
     })));
     
-    // Show deployment instructions
     logger.bigLog('READY TO DEPLOY', { color: 'green' });
     console.log('\n📤 Deploy your app:\n');
     console.log('  Vercel:  bunx vercel');
@@ -111,7 +100,6 @@ export async function buildProduction(options = {}) {
       logger.error(error.stack);
     }
     
-    // Clean up on error
     if (existsSync(buildDir)) {
       rmSync(buildDir, { recursive: true });
     }
@@ -122,15 +110,10 @@ export async function buildProduction(options = {}) {
 
 async function buildAllCSS(root, outDir) {
   const srcStylesDir = join(root, 'src', 'styles');
-  const bertuiCssSource = join(import.meta.dir, 'styles/bertui.css');
   const stylesOutDir = join(outDir, 'styles');
   
   mkdirSync(stylesOutDir, { recursive: true });
   
-  // Build BertUI's built-in CSS
-  await buildCSS(bertuiCssSource, join(stylesOutDir, 'bertui.min.css'));
-  
-  // Build user's CSS files if they exist
   if (existsSync(srcStylesDir)) {
     const cssFiles = readdirSync(srcStylesDir).filter(f => f.endsWith('.css'));
     for (const cssFile of cssFiles) {
@@ -149,17 +132,14 @@ async function compileForBuild(root, buildDir) {
     throw new Error('src/ directory not found!');
   }
   
-  // Discover routes
   let routes = [];
   if (existsSync(pagesDir)) {
     routes = await discoverRoutes(pagesDir);
     logger.info(`Found ${routes.length} routes`);
   }
   
-  // Compile all source files
   await compileBuildDirectory(srcDir, buildDir, root);
   
-  // Generate router if we have routes
   if (routes.length > 0) {
     await generateBuildRouter(routes, buildDir);
     logger.info('Generated router for build');
@@ -181,7 +161,6 @@ async function discoverRoutes(pagesDir) {
       } else if (entry.isFile()) {
         const ext = extname(entry.name);
         
-        // FIXED: Ignore CSS files
         if (ext === '.css') continue;
         
         if (['.jsx', '.tsx', '.js', '.ts'].includes(ext)) {
@@ -369,7 +348,6 @@ async function compileBuildDirectory(srcDir, buildDir, root) {
     } else {
       const ext = extname(file);
       
-      // FIXED: Skip CSS files in build
       if (ext === '.css') continue;
       
       if (['.jsx', '.tsx', '.ts'].includes(ext)) {
@@ -377,7 +355,11 @@ async function compileBuildDirectory(srcDir, buildDir, root) {
       } else if (ext === '.js') {
         const outPath = join(buildDir, file);
         let code = await Bun.file(srcPath).text();
+        
+        // CRITICAL FIX: Remove CSS imports
+        code = removeCSSImports(code);
         code = fixBuildImports(code, srcPath, outPath, root);
+        
         await Bun.write(outPath, code);
       }
     }
@@ -390,6 +372,9 @@ async function compileBuildFile(srcPath, buildDir, filename, root) {
   
   try {
     let code = await Bun.file(srcPath).text();
+    
+    // CRITICAL FIX: Remove CSS imports before transpilation
+    code = removeCSSImports(code);
     
     const outFilename = filename.replace(/\.(jsx|tsx|ts)$/, '.js');
     const outPath = join(buildDir, outFilename);
@@ -422,19 +407,20 @@ async function compileBuildFile(srcPath, buildDir, filename, root) {
   }
 }
 
-// FIXED: Only fix router imports, preserve all others
-function fixBuildImports(code, srcPath, outPath, root) {
-  // Remove bertui/styles imports
+// NEW FUNCTION: Remove all CSS imports
+function removeCSSImports(code) {
+  code = code.replace(/import\s+['"][^'"]*\.css['"];?\s*/g, '');
   code = code.replace(/import\s+['"]bertui\/styles['"]\s*;?\s*/g, '');
-  
+  return code;
+}
+
+function fixBuildImports(code, srcPath, outPath, root) {
   const buildDir = join(root, '.bertuibuild');
   const routerPath = join(buildDir, 'router.js');
   
-  // Calculate relative path from output file to router.js
   const relativeToRouter = relative(dirname(outPath), routerPath).replace(/\\/g, '/');
   const routerImport = relativeToRouter.startsWith('.') ? relativeToRouter : './' + relativeToRouter;
   
-  // ONLY replace bertui/router imports
   code = code.replace(
     /from\s+['"]bertui\/router['"]/g,
     `from '${routerImport}'`
@@ -467,6 +453,17 @@ async function generateProductionHTML(root, outDir, buildResult) {
   
   const bundlePath = mainBundle.path.replace(outDir, '').replace(/^\//, '');
   
+  // Find user CSS files
+  const srcStylesDir = join(root, 'src', 'styles');
+  let userStylesheets = '';
+  
+  if (existsSync(srcStylesDir)) {
+    const cssFiles = readdirSync(srcStylesDir).filter(f => f.endsWith('.css'));
+    userStylesheets = cssFiles.map(f => 
+      `  <link rel="stylesheet" href="/styles/${f.replace('.css', '.min.css')}">`
+    ).join('\n');
+  }
+  
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -474,7 +471,7 @@ async function generateProductionHTML(root, outDir, buildResult) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Built with BertUI - Lightning fast React development">
   <title>BertUI App</title>
-  <link rel="stylesheet" href="/styles/bertui.min.css">
+${userStylesheets}
   <script type="importmap">
   {
     "imports": {

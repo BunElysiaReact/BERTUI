@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readdirSync, statSync } from 'fs';
 import { join, extname, relative, dirname } from 'path';
 import logger from '../logger/logger.js';
+import { loadEnvVariables, generateEnvCode, replaceEnvInCode } from '../utils/env.js';
 
 export async function compileProject(root) {
   logger.bigLog('COMPILING PROJECT', { color: 'blue' });
@@ -19,6 +20,16 @@ export async function compileProject(root) {
     logger.info('Created .bertui/compiled/');
   }
   
+  // Load environment variables
+  const envVars = loadEnvVariables(root);
+  if (Object.keys(envVars).length > 0) {
+    logger.info(`Loaded ${Object.keys(envVars).length} environment variables`);
+  }
+  
+  // Generate env.js file
+  const envCode = generateEnvCode(envVars);
+  await Bun.write(join(outDir, 'env.js'), envCode);
+  
   let routes = [];
   if (existsSync(pagesDir)) {
     routes = await discoverRoutes(pagesDir);
@@ -36,7 +47,7 @@ export async function compileProject(root) {
   }
   
   const startTime = Date.now();
-  const stats = await compileDirectory(srcDir, outDir, root);
+  const stats = await compileDirectory(srcDir, outDir, root, envVars);
   const duration = Date.now() - startTime;
   
   if (routes.length > 0) {
@@ -65,13 +76,8 @@ async function discoverRoutes(pagesDir) {
       } else if (entry.isFile()) {
         const ext = extname(entry.name);
         
-        // FIXED: Ignore CSS files completely
-        if (ext === '.css') {
-          logger.debug(`Skipping CSS file: ${relativePath}`);
-          continue;
-        }
+        if (ext === '.css') continue;
         
-        // Only process valid page files
         if (['.jsx', '.tsx', '.js', '.ts'].includes(ext)) {
           const fileName = entry.name.replace(ext, '');
           
@@ -244,7 +250,7 @@ ${routeConfigs}
   await Bun.write(routerPath, routerComponentCode);
 }
 
-async function compileDirectory(srcDir, outDir, root) {
+async function compileDirectory(srcDir, outDir, root, envVars) {
   const stats = { files: 0, skipped: 0 };
   
   const files = readdirSync(srcDir);
@@ -256,14 +262,13 @@ async function compileDirectory(srcDir, outDir, root) {
     if (stat.isDirectory()) {
       const subOutDir = join(outDir, file);
       mkdirSync(subOutDir, { recursive: true });
-      const subStats = await compileDirectory(srcPath, subOutDir, root);
+      const subStats = await compileDirectory(srcPath, subOutDir, root, envVars);
       stats.files += subStats.files;
       stats.skipped += subStats.skipped;
     } else {
       const ext = extname(file);
       const relativePath = relative(join(root, 'src'), srcPath);
       
-      // FIXED: Handle CSS files properly - copy to styles output
       if (ext === '.css') {
         const stylesOutDir = join(root, '.bertui', 'styles');
         if (!existsSync(stylesOutDir)) {
@@ -274,14 +279,17 @@ async function compileDirectory(srcDir, outDir, root) {
         logger.debug(`Copied CSS: ${relativePath}`);
         stats.files++;
       } else if (['.jsx', '.tsx', '.ts'].includes(ext)) {
-        await compileFile(srcPath, outDir, file, relativePath);
+        await compileFile(srcPath, outDir, file, relativePath, root, envVars);
         stats.files++;
       } else if (ext === '.js') {
         const outPath = join(outDir, file);
         let code = await Bun.file(srcPath).text();
         
-        // FIXED: Don't modify imports - let Bun handle them
-        // Only fix router imports
+        // Remove ALL CSS imports
+        code = removeCSSImports(code);
+        // Inject environment variables
+        code = replaceEnvInCode(code, envVars);
+        // Fix router imports
         code = fixRouterImports(code, outPath, root);
         
         await Bun.write(outPath, code);
@@ -297,17 +305,24 @@ async function compileDirectory(srcDir, outDir, root) {
   return stats;
 }
 
-async function compileFile(srcPath, outDir, filename, relativePath) {
+async function compileFile(srcPath, outDir, filename, relativePath, root, envVars) {
   const ext = extname(filename);
   const loader = ext === '.tsx' ? 'tsx' : ext === '.ts' ? 'ts' : 'jsx';
   
   try {
     let code = await Bun.file(srcPath).text();
     
-    // FIXED: Don't remove any imports - preserve them all
-    // Only fix router imports to point to compiled location
+    // CRITICAL FIX: Remove ALL CSS imports before transpilation
+    code = removeCSSImports(code);
+    
+    // Remove dotenv imports (not needed in browser)
+    code = removeDotenvImports(code);
+    
+    // Inject environment variables
+    code = replaceEnvInCode(code, envVars);
+    
     const outPath = join(outDir, filename.replace(/\.(jsx|tsx|ts)$/, '.js'));
-    code = fixRouterImports(code, outPath, process.cwd());
+    code = fixRouterImports(code, outPath, root);
     
     const transpiler = new Bun.Transpiler({ 
       loader,
@@ -335,23 +350,43 @@ async function compileFile(srcPath, outDir, filename, relativePath) {
   }
 }
 
-// FIXED: New function - only fixes bertui/router imports
+// NEW FUNCTION: Remove all CSS imports
+function removeCSSImports(code) {
+  // Remove CSS imports (with or without quotes, single or double)
+  // Matches: import './styles.css', import "./styles.css", import "styles.css", import 'styles.css'
+  code = code.replace(/import\s+['"][^'"]*\.css['"];?\s*/g, '');
+  
+  // Also remove bertui/styles imports
+  code = code.replace(/import\s+['"]bertui\/styles['"]\s*;?\s*/g, '');
+  
+  return code;
+}
+
+// NEW FUNCTION: Remove dotenv imports and dotenv.config() calls
+function removeDotenvImports(code) {
+  // Remove: import dotenv from 'dotenv'
+  code = code.replace(/import\s+\w+\s+from\s+['"]dotenv['"]\s*;?\s*/g, '');
+  
+  // Remove: import { config } from 'dotenv'
+  code = code.replace(/import\s+\{[^}]+\}\s+from\s+['"]dotenv['"]\s*;?\s*/g, '');
+  
+  // Remove: dotenv.config()
+  code = code.replace(/\w+\.config\(\s*\)\s*;?\s*/g, '');
+  
+  return code;
+}
+
 function fixRouterImports(code, outPath, root) {
   const buildDir = join(root, '.bertui', 'compiled');
   const routerPath = join(buildDir, 'router.js');
   
-  // Calculate relative path from output file to router.js
   const relativeToRouter = relative(dirname(outPath), routerPath).replace(/\\/g, '/');
   const routerImport = relativeToRouter.startsWith('.') ? relativeToRouter : './' + relativeToRouter;
   
-  // ONLY replace bertui/router imports
   code = code.replace(
     /from\s+['"]bertui\/router['"]/g,
     `from '${routerImport}'`
   );
-  
-  // Remove bertui/styles imports (CSS handled separately)
-  code = code.replace(/import\s+['"]bertui\/styles['"]\s*;?\s*/g, '');
   
   return code;
 }
