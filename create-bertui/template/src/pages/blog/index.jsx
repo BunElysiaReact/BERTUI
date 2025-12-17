@@ -1,5 +1,5 @@
-// src/pages/blog/index.jsx
 import { Link } from 'bertui/router';
+import '../styles/blog.css';
 
 const posts = [
   {
@@ -17,7 +17,7 @@ const posts = [
     readTime: '8 min'
   },
   {
-    slug: 'animations',
+    slug: 'performance',
     title: 'Building Fast Apps',
     excerpt: 'Tips and tricks for maximum performance.',
     date: 'Jan 25, 2024',
@@ -27,45 +27,21 @@ const posts = [
 
 export default function Blog() {
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '2rem 1rem', fontFamily: 'system-ui' }}>
-      <h1 style={{ fontSize: '2.5rem', marginBottom: '2rem' }}>
-        Blog
-      </h1>
+    <div className="blog-container">
+      <h1 className="blog-title">Blog</h1>
       
-      <div style={{ display: 'grid', gap: '1.5rem' }}>
+      <div className="blog-posts">
         {posts.map((post) => (
-          <article 
-            key={post.slug}
-            style={{ 
-              padding: '2rem',
-              background: 'white',
-              borderRadius: '12px',
-              border: '1px solid #e5e7eb',
-              transition: 'all 0.3s'
-            }}
-          >
-            <h2 style={{ marginBottom: '0.75rem', fontSize: '1.5rem' }}>
-              <Link 
-                to={`/blog/${post.slug}`}
-                style={{ 
-                  color: '#1f2937',
-                  textDecoration: 'none'
-                }}
-              >
+          <article key={post.slug} className="blog-post">
+            <h2 className="blog-post-title">
+              <Link to={`/blog/${post.slug}`} className="blog-post-link">
                 {post.title}
               </Link>
             </h2>
             
-            <p style={{ color: '#6b7280', marginBottom: '1rem' }}>
-              {post.excerpt}
-            </p>
+            <p className="blog-post-excerpt">{post.excerpt}</p>
             
-            <div style={{ 
-              display: 'flex', 
-              gap: '1rem',
-              fontSize: '0.875rem',
-              color: '#9ca3af'
-            }}>
+            <div className="blog-post-meta">
               <span>📅 {post.date}</span>
               <span>⏱️ {post.readTime}</span>
             </div>
@@ -73,18 +49,8 @@ export default function Blog() {
         ))}
       </div>
       
-      <div style={{ marginTop: '3rem' }}>
-        <Link to="/" style={{
-          display: 'inline-block',
-          padding: '0.75rem 1.5rem',
-          background: '#10b981',
-          color: 'white',
-          borderRadius: '8px',
-          textDecoration: 'none',
-          fontWeight: '500'
-        }}>
-          ← Back to Home
-        </Link>
+      <div className="blog-back">
+        <Link to="/" className="btn btn-back">← Back to Home</Link>
       </div>
     </div>
   );

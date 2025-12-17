@@ -1,7 +1,7 @@
 import { Elysia } from 'elysia';
 import { watch } from 'fs';
 import { join, extname } from 'path';
-import { existsSync } from 'fs';
+import { existsSync, readdirSync } from 'fs'; // ✅ FIXED: Import properly
 import logger from '../logger/logger.js';
 import { compileProject } from '../client/compiler.js';
 import { loadConfig } from '../config/loadConfig.js';
@@ -50,7 +50,7 @@ export async function startDevServer(options = {}) {
           }
         }
         
-        // FIXED: Handle CSS files from .bertui/styles
+        // Handle CSS files from .bertui/styles
         if (path.startsWith('styles/') && path.endsWith('.css')) {
           const cssPath = join(stylesDir, path.replace('styles/', ''));
           const file = Bun.file(cssPath);
@@ -148,7 +148,6 @@ ws.onclose = () => {
       });
     })
     
-    // FIXED: Serve CSS from .bertui/styles
     .get('/styles/*', async ({ params, set }) => {
       const filepath = join(stylesDir, params['*']);
       const file = Bun.file(filepath);
@@ -166,7 +165,6 @@ ws.onclose = () => {
       });
     })
     
-    // Around line 60, update the route handler:
     .get('/public/*', async ({ params, set }) => {
       const publicDir = join(root, 'public');
       const filepath = join(publicDir, params['*']);
@@ -200,17 +198,20 @@ ws.onclose = () => {
 function serveHTML(root, hasRouter, config) {
   const meta = config.meta || {};
   
-  // Find user's CSS files
+  // ✅ FIXED: Proper ESM import for fs
   const srcStylesDir = join(root, 'src', 'styles');
   let userStylesheets = '';
   
   if (existsSync(srcStylesDir)) {
-    const cssFiles = require('fs').readdirSync(srcStylesDir).filter(f => f.endsWith('.css'));
-    userStylesheets = cssFiles.map(f => `  <link rel="stylesheet" href="/styles/${f}">`).join('\n');
+    try {
+      const cssFiles = readdirSync(srcStylesDir).filter(f => f.endsWith('.css'));
+      userStylesheets = cssFiles.map(f => `  <link rel="stylesheet" href="/styles/${f}">`).join('\n');
+    } catch (error) {
+      logger.warn(`Could not read styles directory: ${error.message}`);
+    }
   }
   
-  const html = `
-<!DOCTYPE html>
+  const html = `<!DOCTYPE html>
 <html lang="${meta.lang || 'en'}">
 <head>
   <meta charset="UTF-8">
@@ -226,9 +227,9 @@ function serveHTML(root, hasRouter, config) {
   ${meta.ogDescription ? `<meta property="og:description" content="${meta.ogDescription || meta.description}">` : ''}
   ${meta.ogImage ? `<meta property="og:image" content="${meta.ogImage}">` : ''}
   
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/svg+xml" href="/public/favicon.svg">
   
-  ${userStylesheets}
+${userStylesheets}
   
   <script type="importmap">
   {

@@ -145,6 +145,7 @@ async function setup() {
     log(`  bun run dev`, colors.cyan);
     log('\n💡 Tip: Use "bertui dev" for the fastest dev server experience!\n', colors.yellow);
     
+    
   } catch (error) {
     log(`\n❌ Failed to create project: ${error.message}`, colors.red);
     if (error.stack) {

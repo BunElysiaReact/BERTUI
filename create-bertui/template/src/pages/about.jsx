@@ -1,69 +1,49 @@
-// src/pages/about.jsx
 import { Link } from 'bertui/router';
+import '../styles/about.css';
 
 export default function About() {
   return (
-    <div style={{ padding: '2rem', fontFamily: 'system-ui' }}>
-      <h1 style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>
-        About BertUI
-      </h1>
+    <div className="about-container">
+      <h1 className="about-title">About BertUI</h1>
       
-      <p style={{ fontSize: '1.125rem', lineHeight: '1.8', color: '#4b5563', marginBottom: '2rem' }}>
+      <p className="about-text">
         BertUI is a modern React development framework that combines the blazing speed of Bun 
         with the elegance of file-based routing.
       </p>
       
-      <p style={{ fontSize: '1.125rem', lineHeight: '1.8', color: '#4b5563', marginBottom: '2rem' }}>
+      <p className="about-text">
         Built for developers who want to move fast without sacrificing code quality.
       </p>
       
-      <div style={{ 
-        marginTop: '3rem',
-        padding: '2rem',
-        background: '#f9fafb',
-        borderRadius: '12px',
-        border: '2px solid #e5e7eb'
-      }}>
-        <h2 style={{ marginBottom: '1.5rem', fontSize: '1.75rem' }}>
-          Why BertUI?
-        </h2>
+      <div className="about-features">
+        <h2 className="about-features-title">Why BertUI?</h2>
         
-        <div style={{ display: 'grid', gap: '1.5rem' }}>
-          <div>
-            <h3 style={{ color: '#10b981', marginBottom: '0.5rem' }}>⚡ Speed</h3>
-            <p style={{ color: '#6b7280' }}>
+        <div className="features-grid">
+          <div className="feature-item">
+            <h3 className="feature-item-title feature-speed">⚡ Speed</h3>
+            <p className="feature-item-text">
               Leverages Bun's native performance for faster builds and hot reloads.
             </p>
           </div>
           
-          <div>
-            <h3 style={{ color: '#3b82f6', marginBottom: '0.5rem' }}>🎯 Simplicity</h3>
-            <p style={{ color: '#6b7280' }}>
+          <div className="feature-item">
+            <h3 className="feature-item-title feature-simplicity">🎯 Simplicity</h3>
+            <p className="feature-item-text">
               File-based routing means no complex configuration - just create files and go.
             </p>
           </div>
           
-          <div>
-            <h3 style={{ color: '#8b5cf6', marginBottom: '0.5rem' }}>💪 Power</h3>
-            <p style={{ color: '#6b7280' }}>
+          <div className="feature-item">
+            <h3 className="feature-item-title feature-power">💪 Power</h3>
+            <p className="feature-item-text">
               Code splitting and modern tooling out of the box.
             </p>
           </div>
         </div>
       </div>
       
-      <div style={{ marginTop: '3rem' }}>
-        <Link to="/" style={{
-          display: 'inline-block',
-          padding: '0.75rem 1.5rem',
-          background: '#10b981',
-          color: 'white',
-          borderRadius: '8px',
-          textDecoration: 'none',
-          fontWeight: '500'
-        }}>
-          ← Back to Home
-        </Link>
+      <div className="about-cta">
+        <Link to="/" className="btn btn-back">← Back to Home</Link>
       </div>
     </div>
   );

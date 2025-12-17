@@ -11,7 +11,7 @@ export function loadEnvVariables(root) {
   
   // Load from process.env (already loaded by Bun/Node)
   for (const [key, value] of Object.entries(process.env)) {
-    // Only expose variables that start with VITE_ or PUBLIC_
+    // Only expose variables that start with BERTUI_ or PUBLIC_
     if (key.startsWith('BERTUI_') || key.startsWith('PUBLIC_')) {
       envVars[key] = value;
     }
@@ -28,13 +28,12 @@ export function generateEnvCode(envVars) {
     .map(([key, value]) => `  "${key}": ${JSON.stringify(value)}`)
     .join(',\n');
   
-  return `
-// Environment variables injected at build time
+  return `// Environment variables injected at build time
 export const env = {
 ${envObject}
 };
 
- Make it available globally (optional)
+// Make it available globally (optional)
 if (typeof window !== 'undefined') {
   window.__BERTUI_ENV__ = env;
 }
@@ -42,7 +41,8 @@ if (typeof window !== 'undefined') {
 }
 
 /**
- * Replace process.env references in code with actual values
+ * ✅ CRITICAL FIX: Replace ALL process.env references with actual values
+ * This prevents "process is not defined" errors in the browser
  */
 export function replaceEnvInCode(code, envVars) {
   let result = code;
@@ -52,6 +52,17 @@ export function replaceEnvInCode(code, envVars) {
     const regex = new RegExp(`process\\.env\\.${key}`, 'g');
     result = result.replace(regex, JSON.stringify(value));
   }
+  
+  // ✅ NEW: Also replace generic process.env.NODE_ENV
+  // This is commonly used by React and other libraries
+  result = result.replace(
+    /process\.env\.NODE_ENV/g, 
+    JSON.stringify('production')
+  );
+  
+  // ✅ NEW: Remove any remaining process references that might cause errors
+  // Replace with undefined to avoid runtime errors
+  result = result.replace(/\bprocess\b/g, 'undefined');
   
   return result;
 }

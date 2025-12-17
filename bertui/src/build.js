@@ -1,8 +1,9 @@
-import { join } from 'path';
+import { join, relative, basename } from 'path';
 import { existsSync, mkdirSync, rmSync, cpSync, readdirSync, statSync } from 'fs';
-import { extname, relative, dirname } from 'path';
+import { extname, dirname } from 'path';
 import logger from './logger/logger.js';
 import { buildCSS } from './build/css-builder.js';
+import { loadEnvVariables, replaceEnvInCode } from './utils/env.js'; // ✅ IMPORT THIS!
 
 export async function buildProduction(options = {}) {
   const root = options.root || process.cwd();
@@ -25,8 +26,15 @@ export async function buildProduction(options = {}) {
   const startTime = Date.now();
   
   try {
+    // ✅ LOAD ENV VARS BEFORE COMPILATION!
+    logger.info('Step 0: Loading environment variables...');
+    const envVars = loadEnvVariables(root);
+    if (Object.keys(envVars).length > 0) {
+      logger.info(`Loaded ${Object.keys(envVars).length} environment variables`);
+    }
+    
     logger.info('Step 1: Compiling for production...');
-    const { routes } = await compileForBuild(root, buildDir);
+    const { routes } = await compileForBuild(root, buildDir, envVars); // ✅ PASS ENV VARS!
     logger.success('Production compilation complete');
     
     logger.info('Step 2: Building CSS with Lightning CSS...');
@@ -68,7 +76,21 @@ export async function buildProduction(options = {}) {
         chunk: 'chunks/[name]-[hash].js',
         asset: '[name]-[hash].[ext]'
       },
-      external: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime']
+      external: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime'],
+      // ✅ CRITICAL: Add define to replace process.env at bundle time!
+      define: {
+        'process.env.NODE_ENV': '"production"',
+        'process.env.PUBLIC_APP_NAME': JSON.stringify(envVars.PUBLIC_APP_NAME || 'BertUI App'),
+        'process.env.PUBLIC_API_URL': JSON.stringify(envVars.PUBLIC_API_URL || ''),
+        'process.env.PUBLIC_USERNAME': JSON.stringify(envVars.PUBLIC_USERNAME || ''),
+        // Add all other env vars dynamically
+        ...Object.fromEntries(
+          Object.entries(envVars).map(([key, value]) => [
+            `process.env.${key}`,
+            JSON.stringify(value)
+          ])
+        )
+      }
     });
     
     if (!result.success) {
@@ -131,7 +153,8 @@ async function buildAllCSS(root, outDir) {
   }
 }
 
-async function compileForBuild(root, buildDir) {
+// ✅ ACCEPT ENV VARS PARAMETER
+async function compileForBuild(root, buildDir, envVars) {
   const srcDir = join(root, 'src');
   const pagesDir = join(srcDir, 'pages');
   
@@ -145,7 +168,8 @@ async function compileForBuild(root, buildDir) {
     logger.info(`Found ${routes.length} routes`);
   }
   
-  await compileBuildDirectory(srcDir, buildDir, root);
+  // ✅ PASS ENV VARS TO COMPILATION
+  await compileBuildDirectory(srcDir, buildDir, root, envVars);
   
   if (routes.length > 0) {
     await generateBuildRouter(routes, buildDir);
@@ -343,7 +367,8 @@ ${routeConfigs}
   await Bun.write(join(buildDir, 'router.js'), routerCode);
 }
 
-async function compileBuildDirectory(srcDir, buildDir, root) {
+// ✅ ACCEPT ENV VARS PARAMETER
+async function compileBuildDirectory(srcDir, buildDir, root, envVars) {
   const files = readdirSync(srcDir);
   
   for (const file of files) {
@@ -353,19 +378,20 @@ async function compileBuildDirectory(srcDir, buildDir, root) {
     if (stat.isDirectory()) {
       const subBuildDir = join(buildDir, file);
       mkdirSync(subBuildDir, { recursive: true });
-      await compileBuildDirectory(srcPath, subBuildDir, root);
+      await compileBuildDirectory(srcPath, subBuildDir, root, envVars); // ✅ PASS IT DOWN
     } else {
       const ext = extname(file);
       
       if (ext === '.css') continue;
       
       if (['.jsx', '.tsx', '.ts'].includes(ext)) {
-        await compileBuildFile(srcPath, buildDir, file, root);
+        await compileBuildFile(srcPath, buildDir, file, root, envVars); // ✅ PASS IT HERE
       } else if (ext === '.js') {
         const outPath = join(buildDir, file);
         let code = await Bun.file(srcPath).text();
         
         code = removeCSSImports(code);
+        code = replaceEnvInCode(code, envVars); // ✅ REPLACE ENV VARS!
         code = fixBuildImports(code, srcPath, outPath, root);
         
         await Bun.write(outPath, code);
@@ -374,7 +400,8 @@ async function compileBuildDirectory(srcDir, buildDir, root) {
   }
 }
 
-async function compileBuildFile(srcPath, buildDir, filename, root) {
+// ✅ ACCEPT ENV VARS PARAMETER
+async function compileBuildFile(srcPath, buildDir, filename, root, envVars) {
   const ext = extname(filename);
   const loader = ext === '.tsx' ? 'tsx' : ext === '.ts' ? 'ts' : 'jsx';
   
@@ -382,6 +409,7 @@ async function compileBuildFile(srcPath, buildDir, filename, root) {
     let code = await Bun.file(srcPath).text();
     
     code = removeCSSImports(code);
+    code = replaceEnvInCode(code, envVars); // ✅ REPLACE ENV VARS BEFORE TRANSPILATION!
     
     const outFilename = filename.replace(/\.(jsx|tsx|ts)$/, '.js');
     const outPath = join(buildDir, outFilename);
@@ -448,41 +476,90 @@ function fixRelativeImports(code) {
   return code;
 }
 
-// IMPROVED: Extract meta using regex (works on raw source code)
 function extractMetaFromSource(code) {
   try {
-    // Match: export const meta = { ... };
-    const metaRegex = /export\s+const\s+meta\s*=\s*\{([^}]+)\}/s;
-    const match = code.match(metaRegex);
+    const metaMatch = code.match(/export\s+const\s+meta\s*=\s*\{/);
+    if (!metaMatch) return null;
     
-    if (!match) return null;
+    const startIndex = metaMatch.index + metaMatch[0].length - 1;
+    let braceCount = 0;
+    let endIndex = startIndex;
     
-    const metaContent = match[1];
+    for (let i = startIndex; i < code.length; i++) {
+      if (code[i] === '{') braceCount++;
+      if (code[i] === '}') {
+        braceCount--;
+        if (braceCount === 0) {
+          endIndex = i;
+          break;
+        }
+      }
+    }
+    
+    if (endIndex === startIndex) return null;
+    
+    const metaString = code.substring(startIndex, endIndex + 1);
     const meta = {};
+    const pairRegex = /(\w+)\s*:\s*(['"`])((?:(?!\2).)*)\2/g;
+    let match;
     
-    // Extract key-value pairs
-    const pairs = metaContent.match(/(\w+)\s*:\s*(['"`])((?:(?!\2).)*)\2/g);
+    while ((match = pairRegex.exec(metaString)) !== null) {
+      const key = match[1];
+      const value = match[3];
+      meta[key] = value;
+    }
     
-    if (!pairs) return null;
-    
-    pairs.forEach(pair => {
-      const [key, value] = pair.split(':').map(s => s.trim());
-      meta[key] = value.replace(/['"]/g, '');
-    });
-    
-    return meta;
+    return Object.keys(meta).length > 0 ? meta : null;
   } catch (error) {
+    logger.warn(`Could not extract meta: ${error.message}`);
     return null;
   }
 }
 
-// IMPROVED: Render component to static HTML using JSDOM-like approach
-async function renderComponentToHTML(route, bundlePath, userStylesheets, meta) {
-  // For now, we'll create a basic shell with meta tags
-  // Full SSR would require running React server-side
+async function generateProductionHTML(root, outDir, buildResult, routes) {
+  const mainBundle = buildResult.outputs.find(o => 
+    o.path.includes('main') && o.kind === 'entry-point'
+  );
   
-  const html = `<!DOCTYPE html>
-<html lang="en">
+  if (!mainBundle) {
+    throw new Error('Could not find main bundle in build output');
+  }
+  
+  const bundlePath = relative(outDir, mainBundle.path).replace(/\\/g, '/');
+  logger.info(`Main bundle path: ${bundlePath}`);
+  
+  const srcStylesDir = join(root, 'src', 'styles');
+  let userStylesheets = '';
+  
+  if (existsSync(srcStylesDir)) {
+    const cssFiles = readdirSync(srcStylesDir).filter(f => f.endsWith('.css'));
+    userStylesheets = cssFiles.map(f => 
+      `  <link rel="stylesheet" href="/styles/${f.replace('.css', '.min.css')}">`
+    ).join('\n');
+  }
+  
+  const { loadConfig } = await import('./config/loadConfig.js');
+  const config = await loadConfig(root);
+  const defaultMeta = config.meta || {};
+  
+  logger.info('Generating SEO-optimized HTML files...');
+  
+  for (const route of routes) {
+    if (route.type === 'dynamic') {
+      logger.info(`Skipping dynamic route: ${route.route}`);
+      continue;
+    }
+    
+    const sourceCode = await Bun.file(route.path).text();
+    const pageMeta = extractMetaFromSource(sourceCode);
+    const meta = { ...defaultMeta, ...pageMeta };
+    
+    if (pageMeta) {
+      logger.info(`Extracted meta for ${route.route}: ${JSON.stringify(pageMeta)}`);
+    }
+    
+    const html = `<!DOCTYPE html>
+<html lang="${meta.lang || 'en'}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -497,7 +574,7 @@ async function renderComponentToHTML(route, bundlePath, userStylesheets, meta) {
   <meta property="og:description" content="${meta.ogDescription || meta.description || 'Built with BertUI'}">
   ${meta.ogImage ? `<meta property="og:image" content="${meta.ogImage}">` : ''}
   <meta property="og:type" content="website">
-  <meta property="og:url" content="${route}">
+  <meta property="og:url" content="${route.route}">
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="${meta.ogTitle || meta.title || 'BertUI App'}">
@@ -505,7 +582,7 @@ async function renderComponentToHTML(route, bundlePath, userStylesheets, meta) {
   ${meta.ogImage ? `<meta name="twitter:image" content="${meta.ogImage}">` : ''}
   
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="canonical" href="${route}">
+  <link rel="canonical" href="${route.route}">
   
 ${userStylesheets}
   
@@ -519,67 +596,13 @@ ${userStylesheets}
     }
   }
   </script>
-  
-  <!-- SEO Preload Hints -->
-  <link rel="preconnect" href="https://esm.sh">
-  <link rel="dns-prefetch" href="https://esm.sh">
 </head>
 <body>
-  <div id="root">
-    <!-- App shell - JavaScript will hydrate this -->
-    <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:system-ui">
-      <div style="text-align:center">
-        <h1 style="font-size:2rem;margin-bottom:1rem">${meta.title || 'Loading...'}</h1>
-        <p style="color:#666">${meta.description || 'Please wait while we load your content'}</p>
-      </div>
-    </div>
-  </div>
+  <div id="root"></div>
   <script type="module" src="/${bundlePath}"></script>
 </body>
 </html>`;
-  
-  return html;
-}
-
-async function generateProductionHTML(root, outDir, buildResult, routes) {
-  const mainBundle = buildResult.outputs.find(o => 
-    o.path.includes('main') && o.kind === 'entry-point'
-  );
-  
-  if (!mainBundle) {
-    throw new Error('Could not find main bundle in build output');
-  }
-  
-  const bundlePath = mainBundle.path.replace(outDir, '').replace(/^[\/\\]/, '');
-  
-  const srcStylesDir = join(root, 'src', 'styles');
-  let userStylesheets = '';
-  
-  if (existsSync(srcStylesDir)) {
-    const cssFiles = readdirSync(srcStylesDir).filter(f => f.endsWith('.css'));
-    userStylesheets = cssFiles.map(f => 
-      `  <link rel="stylesheet" href="/styles/${f.replace('.css', '.min.css')}">`
-    ).join('\n');
-  }
-  
-  logger.info('Generating SEO-optimized HTML files...');
-  
-  for (const route of routes) {
-    if (route.type === 'dynamic') {
-      logger.info(`Skipping dynamic route: ${route.route}`);
-      continue;
-    }
     
-    // Read source file and extract meta
-    const sourceCode = await Bun.file(route.path).text();
-    const meta = extractMetaFromSource(sourceCode) || {};
-    
-    logger.info(`Extracting meta for ${route.route}: ${JSON.stringify(meta)}`);
-    
-    // Generate HTML with meta tags and app shell
-    const html = await renderComponentToHTML(route.route, bundlePath, userStylesheets, meta);
-    
-    // Determine output path
     let htmlPath;
     if (route.route === '/') {
       htmlPath = join(outDir, 'index.html');
