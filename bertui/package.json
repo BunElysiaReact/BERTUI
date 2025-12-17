@@ -1,6 +1,6 @@
 {
   "name": "bertui",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Lightning-fast React dev server powered by Bun and Elysia",
   "type": "module",
   "main": "./index.js",

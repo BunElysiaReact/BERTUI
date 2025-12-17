@@ -1,4 +1,4 @@
-// src/build.js - COMPLETE FIXED VERSION v1.0.1
+// src/build.js - COMPLETE v1.0.0 FIXED VERSION
 import { join, relative, basename, extname, dirname } from 'path';
 import { existsSync, mkdirSync, rmSync, cpSync, readdirSync, statSync } from 'fs';
 import logger from './logger/logger.js';
@@ -11,7 +11,8 @@ export async function buildProduction(options = {}) {
   const buildDir = join(root, '.bertuibuild');
   const outDir = join(root, 'dist');
   
-  logger.bigLog('BUILDING FOR PRODUCTION', { color: 'green' });
+  logger.bigLog('BUILDING FOR PRODUCTION v1.0.0', { color: 'green' });
+  logger.info('🔥 SINGLE CSS FILE SOLUTION - NO BULLSHIT');
   
   // Clean up old builds
   if (existsSync(buildDir)) {
@@ -38,7 +39,7 @@ export async function buildProduction(options = {}) {
     const { routes } = await compileForBuild(root, buildDir, envVars);
     logger.success(`Production compilation complete - ${routes.length} routes`);
     
-    logger.info('Step 2: Building CSS with Lightning CSS...');
+    logger.info('Step 2: Combining ALL CSS into ONE file...');
     await buildAllCSS(root, outDir);
     
     logger.info('Step 3: Checking image optimization tools...');
@@ -87,15 +88,7 @@ export async function buildProduction(options = {}) {
     
     logger.success('JavaScript bundled successfully');
     
-    // ✅ DEBUG: Show what was built
-    logger.info('Built outputs:');
-    result.outputs.forEach((output, i) => {
-      const relativePath = relative(outDir, output.path);
-      logger.info(`  ${i + 1}. ${relativePath} (${output.kind}, ${output.size} bytes)`);
-    });
-    
-    logger.info('Step 6: Generating HTML files...');
-    // ✅ CRITICAL FIX: Generate HTML files WITH CSS
+    logger.info('Step 6: Generating HTML files with SINGLE CSS...');
     await generateProductionHTML(root, outDir, result, routes);
     
     // Clean up build directory
@@ -108,7 +101,6 @@ export async function buildProduction(options = {}) {
     logger.success(`✨ Build complete in ${duration}ms`);
     logger.info(`📦 Output: ${outDir}`);
     
-    // Show build summary
     logger.table(result.outputs.map(o => ({
       file: o.path.replace(outDir, ''),
       size: `${(o.size / 1024).toFixed(2)} KB`,
@@ -136,7 +128,7 @@ export async function buildProduction(options = {}) {
   }
 }
 
-// ✅ SIMPLE asset copying
+// SIMPLE asset copying
 async function copyAllStaticAssets(root, outDir, optimize = true) {
   const publicDir = join(root, 'public');
   const srcImagesDir = join(root, 'src', 'images');
@@ -164,6 +156,7 @@ async function copyAllStaticAssets(root, outDir, optimize = true) {
   logger.success('✅ All assets copied');
 }
 
+// COMBINE ALL CSS INTO ONE FILE
 async function buildAllCSS(root, outDir) {
   const srcStylesDir = join(root, 'src', 'styles');
   const stylesOutDir = join(outDir, 'styles');
@@ -172,12 +165,29 @@ async function buildAllCSS(root, outDir) {
   
   if (existsSync(srcStylesDir)) {
     const cssFiles = readdirSync(srcStylesDir).filter(f => f.endsWith('.css'));
-    logger.info(`Found ${cssFiles.length} CSS files to minify`);
+    logger.info(`📦 Found ${cssFiles.length} CSS files to combine`);
+    
+    // COMBINE ALL CSS INTO ONE FILE
+    let combinedCSS = '';
+    
     for (const cssFile of cssFiles) {
       const srcPath = join(srcStylesDir, cssFile);
-      const destPath = join(stylesOutDir, cssFile.replace('.css', '.min.css'));
-      await buildCSS(srcPath, destPath);
+      const cssContent = await Bun.file(srcPath).text();
+      combinedCSS += `/* === ${cssFile} === */\n${cssContent}\n\n`;
     }
+    
+    // Write combined CSS
+    const combinedPath = join(stylesOutDir, 'bertui.min.css');
+    await Bun.write(combinedPath, combinedCSS);
+    
+    // Minify it
+    await buildCSS(combinedPath, combinedPath);
+    
+    const size = (await Bun.file(combinedPath).size()) / 1024;
+    logger.success(`✅ Combined ${cssFiles.length} CSS files → bertui.min.css (${size.toFixed(1)}KB)`);
+    
+  } else {
+    logger.warn('⚠️  No src/styles/ directory found');
   }
 }
 
@@ -552,11 +562,10 @@ function extractMetaFromSource(code) {
   }
 }
 
-// ✅ CRITICAL FIX: Generate HTML files WITH CSS
+// GENERATE HTML WITH SINGLE CSS FILE
 async function generateProductionHTML(root, outDir, buildResult, routes) {
-  logger.info('Step 6: Generating HTML files with CSS...');
+  logger.info('Step 6: Generating HTML files with SINGLE CSS...');
   
-  // Find main JS bundle
   const mainBundle = buildResult.outputs.find(o => 
     o.path.includes('main') && o.kind === 'entry-point'
   );
@@ -569,28 +578,6 @@ async function generateProductionHTML(root, outDir, buildResult, routes) {
   const bundlePath = relative(outDir, mainBundle.path).replace(/\\/g, '/');
   logger.info(`Main JS bundle: /${bundlePath}`);
   
-  // ✅ CRITICAL FIX: Get CSS files from DIST directory
-  const stylesOutDir = join(outDir, 'styles');
-  let cssLinks = '';
-  
-  if (existsSync(stylesOutDir)) {
-    const cssFiles = readdirSync(stylesOutDir).filter(f => f.endsWith('.min.css'));
-    logger.info(`Found ${cssFiles.length} CSS files: ${cssFiles.join(', ')}`);
-    
-    if (cssFiles.length > 0) {
-      // Create CSS link tags
-      cssLinks = cssFiles.map(cssFile => 
-        `  <link rel="stylesheet" href="/styles/${cssFile}">`
-      ).join('\n');
-      
-      logger.info(`Generated CSS links:\n${cssLinks}`);
-    } else {
-      logger.warn('⚠️  No .min.css files found in dist/styles/');
-    }
-  } else {
-    logger.error('❌ dist/styles/ directory not found!');
-  }
-  
   // Load config
   const { loadConfig } = await import('./config/loadConfig.js');
   const config = await loadConfig(root);
@@ -598,20 +585,18 @@ async function generateProductionHTML(root, outDir, buildResult, routes) {
   
   logger.info(`Generating HTML for ${routes.length} routes...`);
   
-  // Generate HTML for each route
   for (const route of routes) {
     try {
       const sourceCode = await Bun.file(route.path).text();
       const pageMeta = extractMetaFromSource(sourceCode);
       const meta = { ...defaultMeta, ...pageMeta };
       
-      const html = generateHTML(meta, route, bundlePath, cssLinks);
+      const html = generateHTML(meta, route, bundlePath);
       
       let htmlPath;
       if (route.route === '/') {
         htmlPath = join(outDir, 'index.html');
       } else {
-        // Remove leading slash for directory creation
         const routeDir = join(outDir, route.route.replace(/^\//, ''));
         mkdirSync(routeDir, { recursive: true });
         htmlPath = join(routeDir, 'index.html');
@@ -625,10 +610,10 @@ async function generateProductionHTML(root, outDir, buildResult, routes) {
     }
   }
   
-  logger.success('✨ All HTML files generated with CSS!');
+  logger.success('✨ All HTML files generated with SINGLE CSS file!');
 }
 
-function generateHTML(meta, route, bundlePath, cssLinks) {
+function generateHTML(meta, route, bundlePath) {
   return `<!DOCTYPE html>
 <html lang="${meta.lang || 'en'}">
 <head>
@@ -636,7 +621,7 @@ function generateHTML(meta, route, bundlePath, cssLinks) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${meta.title || 'BertUI App'}</title>
   
-  <meta name="description" content="${meta.description || 'Built with BertUI'}">
+  <meta name="description" content="${meta.description || 'Built with BertUI - Lightning fast React development'}">
   ${meta.keywords ? `<meta name="keywords" content="${meta.keywords}">` : ''}
   ${meta.author ? `<meta name="author" content="${meta.author}">` : ''}
   ${meta.themeColor ? `<meta name="theme-color" content="${meta.themeColor}">` : ''}
@@ -652,10 +637,11 @@ function generateHTML(meta, route, bundlePath, cssLinks) {
   <meta name="twitter:description" content="${meta.twitterDescription || meta.ogDescription || meta.description || 'Built with BertUI'}">
   ${meta.twitterImage || meta.ogImage ? `<meta name="twitter:image" content="${meta.twitterImage || meta.ogImage}">` : ''}
   
+  <!-- 🔥 ONE CSS FILE FOR ALL PAGES - NO BULLSHIT -->
+  <link rel="stylesheet" href="/styles/bertui.min.css">
+  
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="canonical" href="${route.route}">
-  
-${cssLinks}
   
   <script type="importmap">
   {

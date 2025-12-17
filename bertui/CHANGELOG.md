@@ -1,5 +1,6 @@
 # BertUI Changelog
 # Changelog
+## 1.0.2 we will make all minified css to 1 universal css file and am done 
 ## 1.0.1 - Production Build Fix (2025-12-17)
 
 ### 🐛 Critical Bug Fixes
