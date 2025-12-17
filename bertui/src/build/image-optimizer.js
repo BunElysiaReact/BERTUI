@@ -1,4 +1,4 @@
-// bertui/src/build/image-optimizer.js - WASM-POWERED VERSION 🚀
+// bertui/src/build/image-optimizer.js - FIXED VERSION
 import { join, extname } from 'path';
 import { existsSync, mkdirSync, readdirSync, cpSync } from 'fs';
 import logger from '../logger/logger.js';
@@ -46,7 +46,18 @@ export async function optimizeImages(srcDir, outDir) {
   let optimized = 0;
   let totalSaved = 0;
 
-  logger.info('🖼️  Optimizing images with WASM codecs...');
+  logger.info(`🖼️  Optimizing images from ${srcDir} to ${outDir}...`);
+
+  // Check if source directory exists
+  if (!existsSync(srcDir)) {
+    logger.warn(`⚠️  Source directory not found: ${srcDir}`);
+    return { optimized: 0, saved: 0 };
+  }
+
+  // Create output directory if it doesn't exist
+  if (!existsSync(outDir)) {
+    mkdirSync(outDir, { recursive: true });
+  }
 
   async function processDirectory(dir, targetDir) {
     const entries = readdirSync(dir, { withFileTypes: true });
@@ -56,10 +67,12 @@ export async function optimizeImages(srcDir, outDir) {
       const destPath = join(targetDir, entry.name);
 
       if (entry.isDirectory()) {
-        if (!existsSync(destPath)) {
-          mkdirSync(destPath, { recursive: true });
+        // Create subdirectory in target
+        const subDestPath = join(targetDir, entry.name);
+        if (!existsSync(subDestPath)) {
+          mkdirSync(subDestPath, { recursive: true });
         }
-        await processDirectory(srcPath, destPath);
+        await processDirectory(srcPath, subDestPath);
       } else if (entry.isFile()) {
         const ext = extname(entry.name).toLowerCase();
 
@@ -77,7 +90,12 @@ export async function optimizeImages(srcDir, outDir) {
           } catch (error) {
             logger.warn(`⚠️  Failed to optimize ${entry.name}: ${error.message}`);
             // Fallback: just copy the file
-            cpSync(srcPath, destPath);
+            try {
+              cpSync(srcPath, destPath);
+              logger.debug(`📋 Copied ${entry.name} (fallback)`);
+            } catch (copyError) {
+              logger.error(`❌ Failed to copy ${entry.name}: ${copyError.message}`);
+            }
           }
         }
       }
@@ -90,9 +108,31 @@ export async function optimizeImages(srcDir, outDir) {
     logger.success(
       `✅ Optimized ${optimized} images (saved ${(totalSaved / 1024).toFixed(2)}KB total)`
     );
+  } else {
+    logger.info(`📋 No images optimized (copied ${countFilesInDir(outDir)} files)`);
   }
 
   return { optimized, saved: totalSaved };
+}
+
+/**
+ * Count files in directory (for logging)
+ */
+function countFilesInDir(dir) {
+  if (!existsSync(dir)) return 0;
+  
+  let count = 0;
+  const entries = readdirSync(dir, { withFileTypes: true });
+  
+  for (const entry of entries) {
+    if (entry.isFile()) {
+      count++;
+    } else if (entry.isDirectory()) {
+      count += countFilesInDir(join(dir, entry.name));
+    }
+  }
+  
+  return count;
 }
 
 /**
@@ -101,6 +141,12 @@ export async function optimizeImages(srcDir, outDir) {
 async function optimizeImage(srcPath, destPath) {
   const ext = extname(srcPath).toLowerCase();
   const originalFile = Bun.file(srcPath);
+  
+  // Check if file exists
+  if (!await originalFile.exists()) {
+    throw new Error(`File not found: ${srcPath}`);
+  }
+  
   const originalSize = originalFile.size;
 
   try {
@@ -140,6 +186,10 @@ async function optimizeImage(srcPath, destPath) {
       // WebP optimization
       const imageData = await webpDecode(originalBuffer);
       optimizedBuffer = await webpEncode(imageData, { quality: 85 });
+    } else {
+      // Unsupported format, just copy
+      cpSync(srcPath, destPath);
+      return null;
     }
 
     // Only save if we actually reduced the size
@@ -184,8 +234,19 @@ export async function checkOptimizationTools() {
  * Copy images without optimization (fallback)
  */
 export function copyImages(srcDir, outDir) {
-  const imageExtensions = ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg', '.avif'];
+  const imageExtensions = ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg', '.avif', '.ico'];
   let copied = 0;
+
+  // Check if source directory exists
+  if (!existsSync(srcDir)) {
+    logger.warn(`⚠️  Source directory not found: ${srcDir}`);
+    return 0;
+  }
+
+  // Create output directory if it doesn't exist
+  if (!existsSync(outDir)) {
+    mkdirSync(outDir, { recursive: true });
+  }
 
   function processDirectory(dir, targetDir) {
     const entries = readdirSync(dir, { withFileTypes: true });
@@ -195,22 +256,36 @@ export function copyImages(srcDir, outDir) {
       const destPath = join(targetDir, entry.name);
 
       if (entry.isDirectory()) {
-        if (!existsSync(destPath)) {
-          mkdirSync(destPath, { recursive: true });
+        // Create subdirectory in target
+        const subDestPath = join(targetDir, entry.name);
+        if (!existsSync(subDestPath)) {
+          mkdirSync(subDestPath, { recursive: true });
         }
-        processDirectory(srcPath, targetDir);
+        // FIXED: Use destPath, not targetDir
+        processDirectory(srcPath, subDestPath);
       } else if (entry.isFile()) {
         const ext = extname(entry.name).toLowerCase();
 
         if (imageExtensions.includes(ext)) {
-          cpSync(srcPath, destPath);
-          copied++;
+          try {
+            cpSync(srcPath, destPath);
+            copied++;
+            logger.debug(`📋 Copied ${entry.name}`);
+          } catch (error) {
+            logger.warn(`Failed to copy ${entry.name}: ${error.message}`);
+          }
         }
       }
     }
   }
 
   processDirectory(srcDir, outDir);
-  logger.info(`📋 Copied ${copied} images without optimization`);
+  
+  if (copied > 0) {
+    logger.info(`📋 Copied ${copied} images without optimization`);
+  } else {
+    logger.warn(`⚠️  No images found in ${srcDir}`);
+  }
+  
   return copied;
 }

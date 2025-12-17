@@ -125,6 +125,7 @@ export async function buildProduction(options = {}) {
 }
 
 // ✅ FIX 3: Enhanced asset copying with proper directory structure
+// ✅ FIX 3: Enhanced asset copying with proper directory structure
 async function copyAllStaticAssets(root, outDir, optimize = true) {
   const publicDir = join(root, 'public');
   const srcImagesDir = join(root, 'src', 'images');
@@ -132,9 +133,15 @@ async function copyAllStaticAssets(root, outDir, optimize = true) {
   let assetsCopied = 0;
   let assetsOptimized = 0;
   
+  logger.info(`🔍 Checking source directories...`);
+  logger.info(`  public/: ${existsSync(publicDir) ? '✅ exists' : '❌ not found'}`);
+  logger.info(`  src/images/: ${existsSync(srcImagesDir) ? '✅ exists' : '❌ not found'}`);
+  
   // Create images directory in dist/
   const distImagesDir = join(outDir, 'images');
-  mkdirSync(distImagesDir, { recursive: true });
+  if (!existsSync(distImagesDir)) {
+    mkdirSync(distImagesDir, { recursive: true });
+  }
   
   // Copy from public/ to root of dist/
   if (existsSync(publicDir)) {
@@ -145,26 +152,36 @@ async function copyAllStaticAssets(root, outDir, optimize = true) {
     } else {
       assetsCopied += copyImages(publicDir, outDir);
     }
+  } else {
+    logger.info('No public/ directory found, skipping...');
   }
   
   // ✅ FIX: Copy from src/images/ to dist/images/
   if (existsSync(srcImagesDir)) {
-    logger.info('Copying src/images/ to dist/images/...');
+    logger.info(`Copying src/images/ to dist/images/...`);
+    
+    // Debug: List files in src/images/
+    const files = readdirSync(srcImagesDir);
+    logger.info(`Found ${files.length} items in src/images/: ${files.join(', ')}`);
+    
     if (optimize) {
       const result = await optimizeImages(srcImagesDir, distImagesDir);
       assetsOptimized += result.optimized;
     } else {
       assetsCopied += copyImages(srcImagesDir, distImagesDir);
     }
+  } else {
+    logger.info('No src/images/ directory found, skipping...');
   }
   
   if (optimize && assetsOptimized > 0) {
     logger.success(`🎨 Optimized ${assetsOptimized} images with WASM codecs`);
-  } else {
+  } else if (assetsCopied > 0) {
     logger.success(`📋 Copied ${assetsCopied} static assets`);
+  } else {
+    logger.warn(`⚠️  No static assets found or copied`);
   }
 }
-
 async function buildAllCSS(root, outDir) {
   const srcStylesDir = join(root, 'src', 'styles');
   const stylesOutDir = join(outDir, 'styles');
