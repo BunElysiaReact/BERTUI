@@ -32,5 +32,5 @@ export default {
     buildCSS,
     copyCSS,
     program,
-    version: "0.3.9"
+    version: "1.0.3"
 };

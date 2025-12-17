@@ -157,6 +157,7 @@ async function copyAllStaticAssets(root, outDir, optimize = true) {
 }
 
 // COMBINE ALL CSS INTO ONE FILE
+// COMBINE ALL CSS INTO ONE FILE - FIXED BUN API
 async function buildAllCSS(root, outDir) {
   const srcStylesDir = join(root, 'src', 'styles');
   const stylesOutDir = join(outDir, 'styles');
@@ -167,12 +168,20 @@ async function buildAllCSS(root, outDir) {
     const cssFiles = readdirSync(srcStylesDir).filter(f => f.endsWith('.css'));
     logger.info(`📦 Found ${cssFiles.length} CSS files to combine`);
     
+    if (cssFiles.length === 0) {
+      logger.warn('⚠️  No CSS files found in src/styles/');
+      return;
+    }
+    
     // COMBINE ALL CSS INTO ONE FILE
     let combinedCSS = '';
+    let totalOriginalSize = 0;
     
     for (const cssFile of cssFiles) {
       const srcPath = join(srcStylesDir, cssFile);
-      const cssContent = await Bun.file(srcPath).text();
+      const file = Bun.file(srcPath);
+      const cssContent = await file.text();
+      totalOriginalSize += file.size;
       combinedCSS += `/* === ${cssFile} === */\n${cssContent}\n\n`;
     }
     
@@ -181,16 +190,23 @@ async function buildAllCSS(root, outDir) {
     await Bun.write(combinedPath, combinedCSS);
     
     // Minify it
-    await buildCSS(combinedPath, combinedPath);
+    const minified = await buildCSS(combinedPath, combinedPath);
     
-    const size = (await Bun.file(combinedPath).size()) / 1024;
-    logger.success(`✅ Combined ${cssFiles.length} CSS files → bertui.min.css (${size.toFixed(1)}KB)`);
+    // Get final size
+    const finalFile = Bun.file(combinedPath);
+    const finalSize = finalFile.size / 1024;
+    const originalSize = totalOriginalSize / 1024;
+    const savings = ((originalSize - finalSize) / originalSize * 100).toFixed(1);
+    
+    logger.success(`✅ Combined ${cssFiles.length} CSS files (${originalSize.toFixed(1)}KB) → bertui.min.css (${finalSize.toFixed(1)}KB, -${savings}%)`);
     
   } else {
     logger.warn('⚠️  No src/styles/ directory found');
+    // Create empty CSS file so build doesn't fail
+    const emptyPath = join(stylesOutDir, 'bertui.min.css');
+    await Bun.write(emptyPath, '/* No CSS files found */');
   }
 }
-
 async function compileForBuild(root, buildDir, envVars) {
   const srcDir = join(root, 'src');
   const pagesDir = join(srcDir, 'pages');
