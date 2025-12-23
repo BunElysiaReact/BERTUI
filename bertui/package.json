@@ -1,6 +1,6 @@
 {
   "name": "bertui",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "description": "Lightning-fast React dev server powered by Bun and Elysia",
   "type": "module",
   "main": "./index.js",
@@ -50,7 +50,7 @@
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0",
-    "react-dom": "^18.0.0 || ^19.0.0",
+    "react-dom": "^19.2.3",
     "bun": ">=1.0.0"
   },
   "engines": {

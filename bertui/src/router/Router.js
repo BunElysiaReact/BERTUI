@@ -1,12 +1,27 @@
+// src/router/Router.js - SSR COMPATIBLE VERSION
 import { useState, useEffect, createContext, useContext } from 'react';
 
 const RouterContext = createContext(null);
 
+// ✅ FIX: SSR-safe useRouter
 export function useRouter() {
   const context = useContext(RouterContext);
+  
+  // During SSR (when window doesn't exist), return a mock router
+  if (typeof window === 'undefined') {
+    return {
+      pathname: '/',
+      params: {},
+      navigate: () => {},
+      currentRoute: null,
+      isSSR: true
+    };
+  }
+  
   if (!context) {
     throw new Error('useRouter must be used within a Router component');
   }
+  
   return context;
 }
 
@@ -62,15 +77,18 @@ export function Router({ routes }) {
   }
 
   function navigate(path) {
-    window.history.pushState({}, '', path);
-    matchAndSetRoute(path);
+    if (typeof window !== 'undefined') {
+      window.history.pushState({}, '', path);
+      matchAndSetRoute(path);
+    }
   }
 
   const routerValue = {
     currentRoute,
     params,
     navigate,
-    pathname: window.location.pathname
+    pathname: typeof window !== 'undefined' ? window.location.pathname : '/',
+    isSSR: typeof window === 'undefined'
   };
 
   const Component = currentRoute?.component;
@@ -82,12 +100,27 @@ export function Router({ routes }) {
   );
 }
 
+// ✅ FIX: SSR-safe Link component
 export function Link({ to, children, ...props }) {
-  const { navigate } = useRouter();
+  // Try to get router, but don't fail if it doesn't exist
+  let router;
+  try {
+    router = useRouter();
+  } catch (e) {
+    // During SSR, router might not be available
+    router = null;
+  }
 
   function handleClick(e) {
+    // During SSR, just use normal link behavior
+    if (typeof window === 'undefined') return;
+    
+    // If no router or navigate function, use normal link
+    if (!router || !router.navigate) return;
+    
+    // Only prevent default if we have client-side routing
     e.preventDefault();
-    navigate(to);
+    router.navigate(to);
   }
 
   return (
