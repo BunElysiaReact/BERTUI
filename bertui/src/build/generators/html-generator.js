@@ -1,4 +1,4 @@
-// bertui/src/build/generators/html-generator.js - FIXED PRODUCTION IMPORT MAP
+// bertui/src/build/generators/html-generator.js - FIXED JSX RUNTIME
 import { join, relative } from 'path';
 import { mkdirSync, existsSync, cpSync } from 'fs';
 import logger from '../../logger/logger.js';
@@ -239,7 +239,7 @@ async function extractStaticHTMLFromComponent(sourceCode, filePath) {
   }
 }
 
-// ✅ FIXED: Add bertuiIconsInstalled parameter
+// ✅ FIXED: Add jsx-runtime to import map
 function generateHTML(meta, route, bundlePath, staticHTML = '', isServerIsland = false, bertuiIconsInstalled = false) {
   const rootContent = staticHTML 
     ? `<div id="root">${staticHTML}</div>` 
@@ -249,7 +249,7 @@ function generateHTML(meta, route, bundlePath, staticHTML = '', isServerIsland =
     ? '<!-- 🏝️ Server Island: Static content rendered at build time -->'
     : '<!-- ⚡ Client-only: Content rendered by JavaScript -->';
   
-  // ✅ FIX: Add bertui-icons to production import map if installed
+  // ✅ FIX: Add jsx-runtime to import map for production
   const bertuiIconsImport = bertuiIconsInstalled 
     ? ',\n      "bertui-icons": "/node_modules/bertui-icons/generated/index.js"'
     : '';

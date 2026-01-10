@@ -1,15 +1,14 @@
 # BertUI ⚡🏝️
 
-**The fastest React framework for developers who refuse to wait.**
+**The fastest React frontend framework.**
 
-Zero configuration. 494ms dev server. 265ms builds. **Perfect SEO with Server Islands.** Auto-generated sitemaps & robots.txt. Full TypeScript support.
+Zero configuration. 494ms dev server. 265ms builds. **Perfect SEO with Server Islands.**
 
-Powered by Bun and Elysia. **Built for speed. Built for perfection.**
+Powered by Bun and Elysia. **Built for developers who refuse to wait.**
 
 [![Production Ready](https://img.shields.io/badge/status-production--ready-brightgreen)](https://github.com/BunElysiaReact/BERTUI) 
 [![Version](https://img.shields.io/badge/version-1.1.1-blue)](https://www.npmjs.com/package/bertui)
 [![Bun Powered](https://img.shields.io/badge/runtime-Bun-f472b6)](https://bun.sh) 
-[![Zero Config](https://img.shields.io/badge/config-zero-blue)](https://github.com/BunElysiaReact/BERTUI) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ```bash
@@ -19,575 +18,352 @@ bunx create-bertui my-app && cd my-app && bun run dev
 
 ---
 
-## 🔥 The BertUI Ecosystem: Speed Reimagined
+## 🎯 What BertUI Is
 
-**We don't just use existing tools. We rewrite them in the fastest languages possible.**
+**A frontend framework that gives you everything React should have had from day one:**
 
-While other frameworks rely on slow JavaScript implementations, BertUI rebuilds the entire stack from the ground up with **Zig, C++, and Bun FFI** for unmatched performance.
+- ⚡ **Sub-500ms dev starts** - Faster than Vite, Next.js, and everything else
+- 🏗️ **Sub-300ms builds** - Production builds in the time others compile one file
+- 🏝️ **Server Islands** - Optional SSG for perfect SEO (one line of code)
+- 📁 **File-based routing** - Just create files in `pages/`, that's it
+- 🗺️ **Auto SEO** - Sitemap and robots.txt generated automatically
+- 📘 **TypeScript ready** - Full type definitions, zero setup required
+- 🎨 **CSS built-in** - Global styles with LightningCSS optimization
+- 🔥 **30ms HMR** - Instant hot reloading that actually works
 
-### 🎯 Official BertUI Packages
-
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                    THE BERTUI SPEED STACK                        │
-│                                                                  │
-│  ⚡ bertui-icons        →  Icons in Zig (10x faster)            │
-│  🌐 bertui-axios        →  HTTP in C++ (Coming Q1 2025)         │
-│  🔄 bertui-elyserver    →  Full-stack with Elysia (Coming Soon) │
-│  🎨 bertui-animation    →  GPU-accelerated (Coming Soon)        │
-│  📊 bertui-charts       →  WebGL rendering (Coming Soon)        │
-│                                                                  │
-│  "Not just a framework. An entire performance-first ecosystem." │
-└──────────────────────────────────────────────────────────────────┘
-```
-
-**Why BertUI-Exclusive Packages?**
-
-1. **10-100x Performance Gains** - Native compiled code vs interpreted JavaScript
-2. **Zero Compatibility Issues** - Built specifically for BertUI's architecture
-3. **Unified DX** - Consistent APIs across all packages
-4. **No Bloat** - Only what you need, nothing more
+**No webpack config. No babel setup. No framework fatigue. Just React, done right.**
 
 ---
 
-## 🎊 What's New in v1.1.1: SEO Perfection Complete
+## ⚡ Performance That Matters
 
-**We listened. We delivered. BertUI is now the complete SEO powerhouse.**
+**Real benchmarks on a 7-year-old laptop (Intel i3-2348M, 7.6GB RAM):**
 
-### 🆕 New in v1.1.1 (Latest)
+| Metric | BertUI | Vite | Next.js | Your Gain |
+|--------|--------|------|---------|-----------|
+| Dev Server | **494ms** | 713ms | 2,100ms | 1.4-4.3x faster ⚡ |
+| Prod Build | **265ms** | 4,700ms | 8,400ms | 18-32x faster ⚡ |
+| Bundle Size | **100KB** | 220KB | 280KB | 2.2-2.8x smaller ⚡ |
+| HMR Speed | **30ms** | 85ms | 120ms | 2.8-4x faster ⚡ |
 
-- 🤖 **Auto-Generated `robots.txt`** - SEO-friendly crawler instructions, zero config
-- 🗺️ **Auto-Generated `sitemap.xml`** - All routes indexed automatically at build time
-- 📘 **Full TypeScript Support** - Complete `.d.ts` type definitions for the entire API
-- 🎯 **Type Safety Without Complexity** - IntelliSense for all BertUI functions (no `.tsx` required)
-- ⚡ **bertui-icons Integration** - Official icon library with perfect performance
+**If BertUI is this fast on old hardware, imagine what it does on yours.** 🚀
 
-### 🏝️ From v1.1.0: Server Islands
+> Full methodology and reproducible benchmarks: [PERFORMANCE.md](PERFORMANCE.md)
 
-- **Instant SEO** - Add one line, get static HTML at build time
-- **Still Lightning Fast** - 265ms builds haven't changed
-- **Per-Page Control** - Choose what gets pre-rendered
-- **Zero Complexity** - No SSR setup, no server infrastructure
+---
+
+## 🏝️ Server Islands: Perfect SEO, Zero Complexity
+
+**The problem:** Every React framework makes you choose:
+- ✅ Vite: Fast dev, ❌ terrible SEO (client-only)
+- ✅ Next.js: Good SEO, ❌ slow builds + server required
+- ✅ Gatsby: Perfect SEO, ❌ 45-second builds
+
+**BertUI's solution:** Server Islands (optional SSG)
 
 ```jsx
-// The magic line that gives you perfect SEO
+// src/pages/about.jsx
+
+// 🏝️ Add ONE line to enable static generation
 export const render = "server";
+
+// 🎯 Optional: Add SEO metadata
+export const meta = {
+  title: "About Us",
+  description: "Learn about our team",
+  keywords: "about, company, team"
+};
+
+// ⚛️ Write normal React (no hooks, no event handlers)
+export default function About() {
+  return (
+    <div>
+      <h1>About Us</h1>
+      <p>This page is pre-rendered as static HTML!</p>
+      <p>Search engines see everything instantly.</p>
+    </div>
+  );
+}
 ```
 
-**[Complete Server Islands guide →](https://bertui-docswebsite.vercel.app/server-islands)**
+**At build time:**
+- ✅ Generates static HTML for instant loading
+- ✅ Auto-adds to sitemap.xml
+- ✅ Perfect SEO without SSR complexity
+- ✅ Still builds in 265ms
+
+**[Complete Server Islands guide →](https://bertui-docswebsite.pages.dev/server-islands)**
 
 ---
 
-## 🚀 Why BertUI Dominates
-
-### The Speed No One Can Match
-
-**BertUI vs Everyone Else** (Intel i3-2348M, 7.6GB RAM - your results will be faster):
-
-| Metric | BertUI | Vite | Next.js | Winner |
-|--------|--------|------|---------|--------|
-| Dev Server Startup | **494ms** | 713ms | 2.1s | **BertUI (1.4-4.3x faster)** ⚡ |
-| Production Build | **265ms** | 4.70s | 8.4s | **BertUI (18-32x faster)** ⚡ |
-| Bundle Size | **100KB** | 220KB | 280KB | **BertUI (2.2-2.8x smaller)** ⚡ |
-| Install Time (warm) | **5.0s** | 35.3s | 55s | **BertUI (7-11x faster)** ⚡ |
-| SSG Support | **✅ YES** | ❌ NO | ✅ YES | **BertUI (simplest)** 🏝️ |
-| Auto SEO Files | **✅ YES** | ❌ NO | ⚠️ Manual | **BertUI (exclusive)** 🤖 |
-| TypeScript DX | **✅ YES** | ✅ YES | ✅ YES | **BertUI (no setup)** 📘 |
-| Icon Performance | **10x faster** | Standard | Standard | **BertUI (Zig-powered)** ⚡ |
-
-> **"Your speeds are lies!"** — Skeptics (understandable)  
-> **Our response:** [Complete reproducible benchmarks](PERFORMANCE.md) with logs, methodology, and test scripts. Run them yourself. ⏱️
-
-**[See full performance report →](PERFORMANCE.md)**
-
----
-
-## 🎯 The Complete Feature Matrix
-
-### What Makes BertUI Unstoppable
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    The Only Framework With:                     │
-│                                                                 │
-│  ⚡ Sub-500ms dev starts  🏝️ Optional SSG (Server Islands)    │
-│  📦 Sub-300ms builds      🤖 Auto robots.txt generation        │
-│  🗺️ Auto sitemap.xml      📘 Full TypeScript definitions       │
-│  🎯 Zero config needed    📁 File-based routing built-in       │
-│  🔥 30ms HMR updates      💅 Optimized CSS (LightningCSS)      │
-│  🌐 Deploy anywhere       🎨 Modern CSS features               │
-│  🐛 Beautiful errors      📊 Detailed build analytics          │
-│  ⚡ Zig-powered icons     🚀 Native performance libraries      │
-│                                                                 │
-│  "The fastest React framework with perfect SEO, period." 🔥    │
-└─────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## ⚡ Quick Start
-
-### Create New App (30 seconds to first render)
+## 📦 Installation
 
 ```bash
+# Create new app
 bunx create-bertui my-app
+
+# Start development
 cd my-app
 bun run dev
+
+# Build for production
+bun run build
 ```
 
-**That's it.** No webpack config. No babel setup. No bullshit.
+**30 seconds from zero to running. No configuration required.**
 
-**What you get:**
+---
+
+## 📁 Project Structure
+
 ```
 my-app/
 ├── src/
 │   ├── pages/
-│   │   └── index.jsx          # Your homepage (/ route)
-│   ├── components/             # Your components
-│   └── images/                 # Auto-served at /images/*
+│   │   ├── index.jsx          # Route: /
+│   │   ├── about.jsx          # Route: /about
+│   │   └── blog/
+│   │       ├── index.jsx      # Route: /blog
+│   │       └── [slug].jsx     # Route: /blog/:slug (dynamic)
+│   ├── components/             # Your React components
+│   ├── styles/
+│   │   └── global.css         # Automatically imported
+│   └── images/                 # Served at /images/*
 ├── public/
 │   └── favicon.svg             # Static assets
 ├── dist/                       # Production build output
-│   ├── robots.txt             # 🆕 Auto-generated!
-│   └── sitemap.xml            # 🆕 Auto-generated!
+│   ├── sitemap.xml            # 🆕 Auto-generated
+│   └── robots.txt             # 🆕 Auto-generated
 └── package.json
 ```
 
-**First install note:** Initial setup downloads Bun platform binaries (~154MB, one-time). Subsequent projects: ~5 seconds.
+---
+
+## 🛣️ File-Based Routing
+
+**Just create files. BertUI handles the rest.**
+
+```
+src/pages/index.jsx          →  /
+src/pages/about.jsx          →  /about
+src/pages/blog/index.jsx     →  /blog
+src/pages/blog/[slug].jsx    →  /blog/:slug
+src/pages/user/[id].jsx      →  /user/:id
+```
+
+### Dynamic Routes
+
+```jsx
+// src/pages/blog/[slug].jsx
+
+export default function BlogPost({ params }) {
+  return <h1>Post: {params.slug}</h1>;
+}
+
+// /blog/hello-world → params.slug = "hello-world"
+```
+
+### Navigation
+
+```jsx
+import { Link, useRouter } from 'bertui/router';
+
+function Nav() {
+  const { navigate, pathname } = useRouter();
+  
+  return (
+    <nav>
+      <Link to="/">Home</Link>
+      <Link to="/about">About</Link>
+      <button onClick={() => navigate('/blog')}>Blog</button>
+      
+      <p>Current: {pathname}</p>
+    </nav>
+  );
+}
+```
 
 ---
 
-## ⚡ Using BertUI-Icons (Exclusive Performance)
+## ⚙️ Configuration (Optional)
 
-### Installation
+**BertUI works with zero config, but you can customize:**
+
+```javascript
+// bertui.config.js (optional)
+
+export default {
+  siteName: "My Awesome Site",
+  baseUrl: "https://example.com",
+  
+  meta: {
+    title: "My Site - Built with BertUI",
+    description: "Lightning-fast React app",
+    keywords: "react, fast, bertui",
+    author: "Your Name"
+  },
+  
+  robots: {
+    disallow: ["/admin", "/api"],  // Block from search engines
+    crawlDelay: 1                  // Seconds between crawls
+  }
+};
+```
+
+---
+
+## 🎨 Styling
+
+### Global CSS
+
+```css
+/* src/styles/global.css */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: system-ui;
+  line-height: 1.5;
+}
+```
+
+**Automatically imported and optimized with LightningCSS.**
+
+### CSS Modules (coming soon)
+
+```jsx
+import styles from './Button.module.css';
+
+export default function Button() {
+  return <button className={styles.primary}>Click</button>;
+}
+```
+
+---
+
+## 🔌 Official Packages
+
+### bertui-icons (Available Now)
+
+**10x faster icon library powered by Zig.**
 
 ```bash
 bun add bertui-icons
 ```
 
-### Usage - Zero Config, Maximum Speed
-
 ```jsx
-import { ArrowRight, Activity, User } from 'bertui-icons';
+import { ArrowRight, Bell, User } from 'bertui-icons';
 
 function App() {
   return (
     <div>
-      {/* Basic usage */}
-      <span dangerouslySetInnerHTML={{ __html: ArrowRight() }} />
+      {/* Basic icon */}
+      <ArrowRight size={24} />
       
-      {/* With text overlay (unique to bertui-icons!) */}
-      <span dangerouslySetInnerHTML={{ 
-        __html: Activity({ children: '98', color: 'red' }) 
-      }} />
+      {/* Icon with text overlay (exclusive!) */}
+      <Bell color="red">{notificationCount}</Bell>
       
-      {/* Custom sizing */}
-      <span dangerouslySetInnerHTML={{ 
-        __html: User({ children: '5', size: 48 }) 
-      }} />
+      {/* Custom positioning */}
+      <User x={20} y={15} fontSize={10}>VIP</User>
     </div>
   );
 }
 ```
 
-### Why bertui-icons is 10x Faster
-
-**Traditional Icon Libraries (React SVG):**
-```
-Request → Parse SVG string → Create React elements → Virtual DOM diff → Render
-Total: ~15-20ms per icon
-```
-
-**bertui-icons (Zig + FFI):**
-```
-Request → FFI call to Zig → Pre-compiled SVG → Direct HTML injection
-Total: ~1-2ms per icon
-```
-
-**Performance Comparison:**
-- **lucide-react:** 15ms per icon render
-- **react-icons:** 18ms per icon render
-- **bertui-icons:** **1.5ms per icon render** ⚡
-
-**Features Exclusive to bertui-icons:**
-- ✅ Text overlays (badges, labels)
-- ✅ Dynamic positioning
-- ✅ Compiled at build time
-- ✅ Zero runtime overhead
-- ✅ Unlimited imports (no bundle bloat)
-
-**[Complete bertui-icons docs →](https://github.com/BunElysiaReact/bertui-icons)**
+**[bertui-icons documentation →](https://github.com/BunElysiaReact/bertui-icons)**
 
 ---
 
-## 🌐 The BertUI Ecosystem Roadmap
+## 🚀 Coming Soon
 
-### 📅 Coming Soon
+**Future packages (not available yet):**
 
-#### **Q1 2025: bertui-axios** 🌐
-**HTTP client rewritten in C++ with Bun FFI**
+- 🔄 **bertui-elysia** - Full-stack addon (API routes, auth, database)
+- 🎨 **bertui-animation** - GPU-accelerated animations
+- 📊 **bertui-charts** - High-performance charts
 
-```jsx
-import { get, post } from 'bertui-axios';
-
-// 5-10x faster than axios
-const { data } = await get('https://api.example.com/users');
-const response = await post('/api/login', { username, password });
-```
-
-**Features:**
-- C++ compiled HTTP engine
-- Automatic retries with exponential backoff
-- Built-in caching layer
-- Perfect TypeScript support
-- 100% axios-compatible API
-
-#### **Q1 2025: bertui-elyserver** 🔄
-**Full-stack framework with Elysia integration**
-
-```jsx
-// pages/api/users.js - API routes built-in!
-export default function handler(req, res) {
-  return res.json({ users: [...] });
-}
-
-// Automatic API routes, DB integration, auth
-// Zero backend setup required
-```
-
-**Features:**
-- Elysia-powered backend
-- Automatic API routing
-- Built-in database adapters
-- JWT auth out of the box
-- WebSocket support
-
-#### **Q2 2025: bertui-animation** 🎨
-**GPU-accelerated animations**
-
-```jsx
-import { animate } from 'bertui-animation';
-
-// WebGL-powered, 60fps guaranteed
-animate('.box', { x: 100, duration: 0.5 });
-```
-
-#### **Q2 2025: bertui-charts** 📊
-**WebGL chart rendering**
-
-```jsx
-import { LineChart } from 'bertui-charts';
-
-// 1M+ datapoints at 60fps
-<LineChart data={millionPoints} />
-```
+**Why wait?** We're building these in native code (Zig/C++) for maximum performance.
 
 ---
 
-## 🎯 Full React Support Coming Soon
+## 🌐 Deployment
 
-**BertUI is evolving into a complete full-stack framework.**
-
-```jsx
-// Future: Complete React ecosystem support
-import { useState } from 'react';
-import { useQuery } from 'bertui-query';      // Coming Q1 2025
-import { motion } from 'bertui-animation';     // Coming Q2 2025
-import { Database } from 'bertui-db';         // Coming Q2 2025
-
-function App() {
-  const { data } = useQuery('/api/users');
-  
-  return (
-    <motion.div animate={{ opacity: 1 }}>
-      <Database.Table data={data} />
-    </motion.div>
-  );
-}
-```
-
-**What's Coming:**
-- ✅ Full React Hooks support
-- ✅ Built-in state management (bertui-store)
-- ✅ Database ORM (bertui-db)
-- ✅ Authentication system (bertui-auth)
-- ✅ Real-time updates (bertui-realtime)
-
-**BertUI will be the ONLY framework where every package is:**
-1. Rewritten in Zig/C++ for maximum speed
-2. Perfectly integrated with the core
-3. Zero-config out of the box
-4. TypeScript-native
-
----
-
-## 🔥 Why BertUI is Different
-
-### **Other Frameworks:**
-```
-React App
-  ↓
-Uses: axios (JavaScript)
-Uses: lucide-react (JavaScript)
-Uses: framer-motion (JavaScript)
-Uses: random npm packages (pray they work)
-
-Result: Slow, bloated, compatibility issues
-```
-
-### **BertUI:**
-```
-BertUI App
-  ↓
-Uses: bertui-axios (C++)
-Uses: bertui-icons (Zig)
-Uses: bertui-animation (WebGL)
-Uses: ONLY blessed packages (tested, fast)
-
-Result: Fast, lightweight, guaranteed compatibility
-```
-
----
-
-## 📁 File-Based Routing (Zero Config)
-
-**The routing you deserve. No setup required.**
-
-### Basic Routes
-
-```
-src/pages/index.jsx          →  /
-src/pages/about.jsx          →  /about
-src/pages/contact.jsx        →  /contact
-src/pages/blog/index.jsx     →  /blog
-src/pages/blog/post.jsx      →  /blog/post
-```
-
-### Dynamic Routes
-
-```
-src/pages/user/[id].jsx              →  /user/:id
-src/pages/blog/[slug].jsx            →  /blog/:slug
-src/pages/shop/[category]/[item].jsx →  /shop/:category/:item
-```
-
-**Example:**
-```jsx
-// src/pages/user/[id].jsx
-
-export default function UserProfile({ params }) {
-  const userId = params.id;
-  
-  return (
-    <div>
-      <h1>User Profile</h1>
-      <p>Viewing user: {userId}</p>
-    </div>
-  );
-}
-```
-
----
-
-## 🏝️ Server Islands: The Secret Weapon
-
-### What Problem Do They Solve?
-
-**The React Developer's Dilemma:**
-- ❌ Vite = Fast dev, **terrible SEO** (client-only)
-- ❌ Next.js = Good SEO, **slow builds** + complex setup
-- ✅ **BertUI = Fast dev + Fast builds + Perfect SEO + Zero config**
-
-### How Server Islands Work
-
-```jsx
-// src/pages/about.jsx
-
-// 🏝️ Add ONE line to enable Server Islands
-export const render = "server";
-
-// 🎯 Optional: Add metadata for SEO
-export const meta = {
-  title: "About Us - Best Company Ever",
-  description: "Learn about our amazing team and mission",
-  keywords: "about, company, team"
-};
-
-// ⚛️ Write normal React components
-export default function About() {
-  return (
-    <div>
-      <h1>About Us</h1>
-      <p>Pre-rendered as static HTML at build time!</p>
-    </div>
-  );
-}
-```
-
-**What happens at build time:**
-```html
-<!-- dist/about/index.html - Generated automatically! -->
-<!DOCTYPE html>
-<html>
-<head>
-  <title>About Us - Best Company Ever</title>
-  <meta name="description" content="Learn about our amazing team...">
-</head>
-<body>
-  <div id="root">
-    <!-- ⚡ Full HTML content here! Search engines see everything! -->
-    <div>
-      <h1>About Us</h1>
-      <p>Pre-rendered as static HTML at build time!</p>
-    </div>
-  </div>
-  <script src="/bundle.js"></script>
-</body>
-</html>
-```
-
-**[Complete Server Islands guide →](https://bertui-docswebsite.vercel.app/server-islands)**
-
----
-
-## 💭 Our Philosophy
-
-### The BertUI Mission
-
-**"Don't settle for slow JavaScript implementations when faster alternatives exist."**
-
-We're not just building a React framework. We're building a complete ecosystem where:
-
-1. **Every tool is rewritten for speed** (Zig, C++, WebGL)
-2. **Zero configuration is non-negotiable** (it just works)
-3. **Performance is the default** (not an afterthought)
-4. **Developer experience is paramount** (beautiful errors, instant feedback)
-
-### Why We're Exclusive
-
-**BertUI packages only work with BertUI.** Here's why that's a feature, not a bug:
-
-✅ **Perfect Integration** - No compatibility issues, ever  
-✅ **Optimized Performance** - Built specifically for BertUI's architecture  
-✅ **Unified DX** - Consistent APIs, patterns, and conventions  
-✅ **Guaranteed Support** - We test and maintain everything  
-✅ **No Bloat** - Only what you need, perfectly tuned  
-
-**Other frameworks try to support everything and end up slow.**  
-**BertUI supports the best and makes it blazing fast.**
-
----
-
-## 🌐 Production Deployment
-
-### Supported Platforms (All Zero Config)
-
-- ✅ **Vercel** - Recommended, includes pre-configured `vercel.json`
-- ✅ **Netlify** - Works out of the box
-- ✅ **Cloudflare Pages** - Instant edge deploys
-- ✅ **GitHub Pages** - Free static hosting
-- ✅ **Any static host** - Nginx, Apache, S3, Firebase, Surge, etc.
-
-### Vercel Deployment (Fastest)
+### Vercel (Recommended)
 
 ```bash
 # 1. Push to GitHub
 # 2. Import to Vercel
 # 3. Deploy
 
-# Done! Your site is live. 🎉
+# Done! 🎉
 ```
 
-**[Complete deployment guide →](https://bertui-docswebsite.vercel.app/deployment)**
+### Other Platforms
+
+**All of these work with zero config:**
+- ✅ Netlify
+- ✅ Cloudflare Pages
+- ✅ GitHub Pages
+- ✅ Any static host (Nginx, Apache, S3)
+
+**[Deployment guide →](https://bertui-docswebsite.pages.dev/deployment)**
 
 ---
 
-## 📚 Documentation & Resources
-
-### Official Docs
-- **Homepage:** https://bertui-docswebsite.vercel.app/
-- **Getting Started:** https://bertui-docswebsite.vercel.app/getstarted
-- **Server Islands Guide:** https://bertui-docswebsite.vercel.app/server-islands
-- **BertUI Icons:** https://github.com/BunElysiaReact/bertui-icons
-- **Deployment Guide:** https://bertui-docswebsite.vercel.app/deployment
-
-### Community
-- **GitHub:** https://github.com/BunElysiaReact/BERTUI
-- **Issues:** https://github.com/BunElysiaReact/BERTUI/issues
-- **Discussions:** https://github.com/BunElysiaReact/BERTUI/discussions
-
----
-
-## 🛠️ Commands Reference
-
-```bash
-# Development
-bun run dev              # Start dev server (494ms startup)
-
-# Production
-bun run build            # Build for production (265ms builds)
-bun run preview          # Preview production build
-
-# Project Creation
-bunx create-bertui my-app  # Create new BertUI app
-```
-
----
-
-## 🚀 The Future is Fast
-
-**BertUI isn't just another React framework.**
-
-It's a **complete reimagining** of what web development should be:
-- ⚡ **Native-speed libraries** (Zig, C++, WebGL)
-- 🎯 **Zero-config everything** (it just works)
-- 🏝️ **Perfect SEO** (Server Islands)
-- 📦 **Tiny bundles** (sub-100KB apps)
-- 🔥 **Instant feedback** (30ms HMR)
-
-**Join us in building the fastest web framework ever created.**
-
-```bash
-bunx create-bertui my-app
-cd my-app
-bun run dev
-
-# Welcome to the future. ⚡
-```
-
----
-
-## 📊 Comparison Table
+## 📊 Comparison
 
 | Feature | BertUI | Next.js | Vite | Remix |
 |---------|--------|---------|------|-------|
-| **Dev Server** | 494ms | 2.1s | 713ms | 1.8s |
-| **Production Build** | 265ms | 8.4s | 4.7s | 6.2s |
-| **Bundle Size** | 100KB | 280KB | 220KB | 250KB |
-| **HMR Speed** | 30ms | 120ms | 85ms | 110ms |
-| **Server Islands** | ✅ Built-in | ❌ No | ❌ No | ✅ Complex |
-| **Auto SEO Files** | ✅ Yes | ⚠️ Manual | ❌ No | ⚠️ Manual |
-| **TypeScript DX** | ✅ Zero config | ✅ Config needed | ✅ Config needed | ✅ Config needed |
-| **Icon Library** | ⚡ 10x faster | Standard | Standard | Standard |
-| **File-based Routing** | ✅ Built-in | ✅ Built-in | ❌ Plugin | ✅ Built-in |
-| **Native Libraries** | ✅ Zig/C++ | ❌ No | ❌ No | ❌ No |
+| Dev Server | 494ms | 2.1s | 713ms | 1.8s |
+| Prod Build | 265ms | 8.4s | 4.7s | 6.2s |
+| Bundle Size | 100KB | 280KB | 220KB | 250KB |
+| Server Islands | ✅ Built-in | ❌ No | ❌ No | ❌ No |
+| Auto SEO | ✅ Yes | ⚠️ Manual | ❌ No | ⚠️ Manual |
+| Zero Config | ✅ True | ⚠️ Some | ⚠️ Some | ⚠️ Some |
+| TypeScript | ✅ No setup | ✅ Config needed | ✅ Config needed | ✅ Config needed |
 
 ---
 
-## 💎 Premium Features Coming Soon
+## 🛠️ Commands
 
-- 🎨 **BertUI Studio** - Visual page builder
-- 🔐 **BertUI Auth** - Authentication out of the box
-- 💾 **BertUI DB** - Type-safe ORM
-- 📊 **BertUI Analytics** - Built-in analytics
-- 🌍 **BertUI i18n** - Internationalization
-- 🎯 **BertUI SEO** - Advanced SEO tools
+```bash
+# Development
+bun run dev              # Start dev server (494ms)
+
+# Production
+bun run build            # Build for production (265ms)
+bun run preview          # Preview production build
+
+# Create new app
+bunx create-bertui my-app
+```
 
 ---
 
-## ⭐ Star Us on GitHub
+## 📚 Documentation
 
-If BertUI makes your development faster, **give us a star!** ⭐
+- **Website:** https://bertui-docswebsite.pages.dev/
+- **Getting Started:** https://bertui-docswebsite.pages.dev/getstarted
+- **Server Islands:** https://bertui-docswebsite.pages.dev/server-islands
+- **GitHub:** https://github.com/BunElysiaReact/BERTUI
+
+---
+
+## 💬 Community
+
+- **GitHub Discussions:** https://github.com/BunElysiaReact/BERTUI/discussions
+- **Issues:** https://github.com/BunElysiaReact/BERTUI/issues
+- **Discord:** https://discord.gg/x8JXvHKd
+
+---
+
+## ⭐ Support the Project
+
+If BertUI makes your React development faster, give us a star! ⭐
 
 **[github.com/BunElysiaReact/BERTUI](https://github.com/BunElysiaReact/BERTUI)**
 
@@ -601,13 +377,19 @@ MIT License - see [LICENSE](LICENSE) for details
 
 ## 🙏 Credits
 
-- Built with [Bun](https://bun.sh/) - The fastest JavaScript runtime
-- Powered by [Elysia](https://elysiajs.com/) - Lightning-fast HTTP framework
-- Icons by [Lucide](https://lucide.dev/) - Beautiful open-source icons
-- Optimized with [Zig](https://ziglang.org/) - Low-level performance
+- **Runtime:** [Bun](https://bun.sh/) - The fastest JavaScript runtime
+- **Server:** [Elysia](https://elysiajs.com/) - Fast and elegant web framework
+- **CSS:** [LightningCSS](https://lightningcss.dev/) - Lightning-fast CSS processing
+- **Icons:** [Lucide](https://lucide.dev/) - Beautiful icon set
 
 ---
 
+<div align="center">
+
 **Made with ⚡ by the BertUI team**
 
-*"Speed is not a feature. It's the foundation."*
+*"The fastest React framework. Everything React should have been."*
+
+[Website](https://bertui-docswebsite.pages.dev) • [GitHub](https://github.com/BunElysiaReact/BERTUI) • [npm](https://www.npmjs.com/package/bertui)
+
+</div>

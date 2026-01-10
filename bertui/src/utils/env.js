@@ -1,6 +1,6 @@
-// bertui/src/utils/env.js - FIXED
+// bertui/src/utils/env.js - COMPLETE FIXED VERSION
 import { join } from 'path';
-import { existsSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import logger from '../logger/logger.js';
 
 /**
@@ -14,9 +14,8 @@ export function loadEnvVariables(root) {
   
   if (existsSync(envPath)) {
     try {
-      // ✅ FIXED: Use synchronous read for consistency
-      const file = Bun.file(envPath);
-      const envContent = file.text();
+      // ✅ FIXED: Use Node.js readFileSync instead of Bun.file().text()
+      const envContent = readFileSync(envPath, 'utf-8');
       const lines = envContent.split('\n');
       
       for (const line of lines) {

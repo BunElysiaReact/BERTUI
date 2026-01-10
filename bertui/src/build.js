@@ -1,11 +1,10 @@
-// bertui/src/build.js - FIXED BUNDLING
+// bertui/src/build.js - FORCE PRODUCTION MODE
 import { join } from 'path';
-import { existsSync, mkdirSync, rmSync } from 'fs';
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'fs';
 import logger from './logger/logger.js';
 import { loadEnvVariables } from './utils/env.js';
 import { runPageBuilder } from './pagebuilder/core.js';
 
-// Import modular components
 import { compileForBuild } from './build/compiler/index.js';
 import { buildAllCSS } from './build/processors/css-builder.js';
 import { copyAllStaticAssets } from './build/processors/asset-processor.js';
@@ -18,10 +17,12 @@ export async function buildProduction(options = {}) {
   const buildDir = join(root, '.bertuibuild');
   const outDir = join(root, 'dist');
   
+  // Force production environment
+  process.env.NODE_ENV = 'production';
+  
   logger.bigLog('BUILDING WITH SERVER ISLANDS 🏝️', { color: 'green' });
   logger.info('🔥 OPTIONAL SERVER CONTENT - THE GAME CHANGER');
   
-  // Clean directories
   if (existsSync(buildDir)) rmSync(buildDir, { recursive: true });
   if (existsSync(outDir)) rmSync(outDir, { recursive: true });
   mkdirSync(buildDir, { recursive: true });
@@ -30,11 +31,9 @@ export async function buildProduction(options = {}) {
   const startTime = Date.now();
   
   try {
-    // Step 0: Environment
     logger.info('Step 0: Loading environment variables...');
     const envVars = loadEnvVariables(root);
     
-    // Step 0.5: Load config and run Page Builder
     const { loadConfig } = await import('./config/loadConfig.js');
     const config = await loadConfig(root);
     
@@ -43,7 +42,6 @@ export async function buildProduction(options = {}) {
       await runPageBuilder(root, config);
     }
     
-    // Step 1: Compilation
     logger.info('Step 1: Compiling and detecting Server Islands...');
     const { routes, serverIslands, clientRoutes } = await compileForBuild(root, buildDir, envVars);
     
@@ -56,43 +54,33 @@ export async function buildProduction(options = {}) {
       })));
     }
     
-    // Step 2: CSS Processing
     logger.info('Step 2: Combining CSS...');
     await buildAllCSS(root, outDir);
     
-    // Step 3: Assets
     logger.info('Step 3: Copying static assets...');
     await copyAllStaticAssets(root, outDir);
     
-    // Step 4: JavaScript Bundling
     logger.info('Step 4: Bundling JavaScript...');
     const buildEntry = join(buildDir, 'main.js');
     
-    // ✅ CRITICAL FIX: Check if main.js exists before bundling
     if (!existsSync(buildEntry)) {
       logger.error('❌ main.js not found in build directory!');
-      logger.error('   Expected: ' + buildEntry);
-      throw new Error('Build entry point missing. Compilation may have failed.');
+      throw new Error('Build entry point missing');
     }
     
-    const result = await bundleJavaScript(buildEntry, outDir, envVars);
+    const result = await bundleJavaScript(buildEntry, outDir, envVars, buildDir);
     
-    // Step 5: HTML Generation
     logger.info('Step 5: Generating HTML with Server Islands...');
     await generateProductionHTML(root, outDir, result, routes, serverIslands, config);
     
-    // Step 6: Sitemap
     logger.info('Step 6: Generating sitemap.xml...');
     await generateSitemap(routes, config, outDir);
     
-    // Step 7: Robots.txt
     logger.info('Step 7: Generating robots.txt...');
     await generateRobots(config, outDir, routes);
     
-    // Cleanup
     if (existsSync(buildDir)) rmSync(buildDir, { recursive: true });
     
-    // Summary
     const duration = Date.now() - startTime;
     showBuildSummary(routes, serverIslands, clientRoutes, duration);
     
@@ -104,9 +92,14 @@ export async function buildProduction(options = {}) {
   }
 }
 
-async function bundleJavaScript(buildEntry, outDir, envVars) {
+async function bundleJavaScript(buildEntry, outDir, envVars, buildDir) {
   try {
-    // ✅ CRITICAL FIX: Better error handling and clearer external configuration
+    // Change to build directory where bunfig.toml is
+    const originalCwd = process.cwd();
+    process.chdir(buildDir);
+    
+    logger.info('🔧 Bundling with production JSX...');
+    
     const result = await Bun.build({
       entrypoints: [buildEntry],
       outdir: join(outDir, 'assets'),
@@ -119,8 +112,7 @@ async function bundleJavaScript(buildEntry, outDir, envVars) {
         chunk: 'chunks/[name]-[hash].js',
         asset: '[name]-[hash].[ext]'
       },
-      // ✅ FIXED: Externalize React to use CDN (reduces bundle size)
-      external: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime'],
+      external: ['react', 'react-dom', 'react-dom/client'],
       define: {
         'process.env.NODE_ENV': '"production"',
         ...Object.fromEntries(
@@ -132,10 +124,11 @@ async function bundleJavaScript(buildEntry, outDir, envVars) {
       }
     });
     
+    process.chdir(originalCwd);
+    
     if (!result.success) {
       logger.error('❌ JavaScript build failed!');
       
-      // ✅ IMPROVED: Better error reporting
       if (result.logs && result.logs.length > 0) {
         logger.error('\n📋 Build errors:');
         result.logs.forEach((log, i) => {
@@ -147,10 +140,9 @@ async function bundleJavaScript(buildEntry, outDir, envVars) {
         });
       }
       
-      throw new Error('JavaScript bundling failed - check errors above');
+      throw new Error('JavaScript bundling failed');
     }
     
-    // ✅ IMPROVED: Log successful bundle info
     logger.success('✅ JavaScript bundled successfully');
     logger.info(`   Entry points: ${result.outputs.filter(o => o.kind === 'entry-point').length}`);
     logger.info(`   Chunks: ${result.outputs.filter(o => o.kind === 'chunk').length}`);
@@ -162,7 +154,6 @@ async function bundleJavaScript(buildEntry, outDir, envVars) {
     
   } catch (error) {
     logger.error('❌ Bundling error: ' + error.message);
-    if (error.stack) logger.error(error.stack);
     throw error;
   }
 }

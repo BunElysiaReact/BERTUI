@@ -1,0 +1,9 @@
+[build]
+jsx = "react"
+jsxFactory = "React.createElement"
+jsxFragment = "React.Fragment"
+
+[run]
+jsx = "react"
+jsxFactory = "React.createElement"
+jsxFragment = "React.Fragment"

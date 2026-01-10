@@ -1,40 +1,21 @@
-// bertui/src/build/compiler/file-transpiler.js - SINGLE TRANSPILER INSTANCE
+// bertui/src/build/compiler/file-transpiler.js - FORCE PRODUCTION JSX
 import { join, relative, dirname, extname } from 'path';
-import { readdirSync, statSync, mkdirSync } from 'fs';
+import { readdirSync, statSync, mkdirSync, writeFileSync } from 'fs';
 import logger from '../../logger/logger.js';
 import { replaceEnvInCode } from '../../utils/env.js';
 
-// ✅ CRITICAL FIX: Create transpilers ONCE at module level
-const jsxTranspiler = new Bun.Transpiler({ loader: 'jsx' });
-
-const tsxTranspiler = new Bun.Transpiler({ 
-  loader: 'tsx',
-  tsconfig: {
-    compilerOptions: {
-      jsx: 'react',
-      jsxFactory: 'React.createElement',
-      jsxFragmentFactory: 'React.Fragment'
-    }
-  }
-});
-
-const tsTranspiler = new Bun.Transpiler({ 
-  loader: 'ts',
-  tsconfig: {
-    compilerOptions: {
-      jsx: 'preserve'
-    }
-  }
-});
-
-function getTranspiler(loader) {
-  // Just return the pre-created instances
-  return loader === 'tsx' ? tsxTranspiler : 
-         loader === 'ts' ? tsTranspiler : 
-         jsxTranspiler;
-}
-
 export async function compileBuildDirectory(srcDir, buildDir, root, envVars) {
+  // Create bunfig.toml in build directory
+  const bunfigContent = `
+[build]
+jsx = "react"
+jsxFactory = "React.createElement"
+jsxFragment = "React.Fragment"
+`.trim();
+  
+  writeFileSync(join(buildDir, 'bunfig.toml'), bunfigContent);
+  logger.info('Created bunfig.toml for classic JSX');
+  
   const files = readdirSync(srcDir);
   const filesToCompile = [];
   
@@ -60,20 +41,18 @@ export async function compileBuildDirectory(srcDir, buildDir, root, envVars) {
   
   if (filesToCompile.length === 0) return;
   
-  // ✅ Process sequentially with progress
-  logger.info(`📦 Compiling ${filesToCompile.length} files sequentially...`);
+  logger.info(`📦 Compiling ${filesToCompile.length} files...`);
   
   for (let i = 0; i < filesToCompile.length; i++) {
     const file = filesToCompile[i];
     
     try {
       if (file.type === 'tsx') {
-        await compileBuildFile(file.path, file.dir, file.name, root, envVars);
+        await compileBuildFile(file.path, file.dir, file.name, root, envVars, buildDir);
       } else {
         await compileJSFile(file.path, file.dir, file.name, root, envVars);
       }
       
-      // Progress every 10 files
       if ((i + 1) % 10 === 0 || i === filesToCompile.length - 1) {
         const percent = (((i + 1) / filesToCompile.length) * 100).toFixed(0);
         logger.info(`   Progress: ${i + 1}/${filesToCompile.length} (${percent}%)`);
@@ -81,16 +60,14 @@ export async function compileBuildDirectory(srcDir, buildDir, root, envVars) {
       
     } catch (error) {
       logger.error(`Failed to compile ${file.name}: ${error.message}`);
-      // Continue with other files
     }
   }
   
   logger.success(`✅ Compiled ${filesToCompile.length} files`);
 }
 
-async function compileBuildFile(srcPath, buildDir, filename, root, envVars) {
+async function compileBuildFile(srcPath, buildDir, filename, root, envVars, configDir) {
   const ext = extname(filename);
-  const loader = ext === '.tsx' ? 'tsx' : ext === '.ts' ? 'ts' : 'jsx';
   
   try {
     let code = await Bun.file(srcPath).text();
@@ -101,18 +78,39 @@ async function compileBuildFile(srcPath, buildDir, filename, root, envVars) {
     const outPath = join(buildDir, outFilename);
     code = fixBuildImports(code, srcPath, outPath, root);
     
-    // ✅ Reuse the same transpiler instance
-    const transpiler = getTranspiler(loader);
+    // Add React import BEFORE transpiling
+    if (!code.includes('import React')) {
+      code = `import React from 'react';\n${code}`;
+    }
+    
+    // Use Bun.Transpiler with explicit production settings
+    const transpiler = new Bun.Transpiler({
+      loader: ext === '.tsx' ? 'tsx' : ext === '.ts' ? 'ts' : 'jsx',
+      target: 'browser',
+      define: {
+        'process.env.NODE_ENV': '"production"'
+      },
+      tsconfig: {
+        compilerOptions: {
+          jsx: 'react',
+          jsxFactory: 'React.createElement',
+          jsxFragmentFactory: 'React.Fragment',
+          target: 'ES2020'
+        }
+      }
+    });
+    
     let compiled = await transpiler.transform(code);
     
-    if (usesJSX(compiled) && !compiled.includes('import React')) {
-      compiled = `import React from 'react';\n${compiled}`;
+    // Verify no dev JSX leaked through
+    if (compiled.includes('jsxDEV')) {
+      logger.warn(`⚠️  Dev JSX detected in ${filename}, fixing...`);
+      compiled = compiled.replace(/jsxDEV/g, 'jsx');
     }
     
     compiled = fixRelativeImports(compiled);
     await Bun.write(outPath, compiled);
     
-    // Help GC
     code = null;
     compiled = null;
     
@@ -140,9 +138,7 @@ async function compileJSFile(srcPath, buildDir, filename, root, envVars) {
 function usesJSX(code) {
   return code.includes('React.createElement') || 
          code.includes('React.Fragment') ||
-         /<[A-Z]/.test(code) ||
-         code.includes('jsx(') ||
-         code.includes('jsxs(');
+         /<[A-Z]/.test(code);
 }
 
 function removeCSSImports(code) {

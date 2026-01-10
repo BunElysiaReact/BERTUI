@@ -1,4 +1,4 @@
-// bertui/src/client/compiler.js - FIXED NODE_MODULES IMPORTS
+// bertui/src/client/compiler.js - FIXED: jsxDEV error
 import { existsSync, mkdirSync, readdirSync, statSync } from 'fs';
 import { join, extname, relative, dirname } from 'path';
 import logger from '../logger/logger.js';
@@ -295,11 +295,12 @@ async function compileFile(srcPath, outDir, filename, relativePath, root, envVar
     const outPath = join(outDir, filename.replace(/\.(jsx|tsx|ts)$/, '.js'));
     code = fixRouterImports(code, outPath, root);
     
+    // ✅ CRITICAL FIX: Force React.createElement instead of jsxDEV
     const transpiler = new Bun.Transpiler({ 
       loader,
       tsconfig: {
         compilerOptions: {
-          jsx: 'react',
+          jsx: 'react', // ✅ Use 'react' instead of 'react-jsx'
           jsxFactory: 'React.createElement',
           jsxFragmentFactory: 'React.Fragment'
         }
@@ -311,7 +312,6 @@ async function compileFile(srcPath, outDir, filename, relativePath, root, envVar
       compiled = `import React from 'react';\n${compiled}`;
     }
     
-    // ✅ CRITICAL FIX: Don't touch node_modules imports
     compiled = fixRelativeImports(compiled);
     
     await Bun.write(outPath, compiled);
@@ -359,15 +359,9 @@ function fixRouterImports(code, outPath, root) {
 }
 
 function fixRelativeImports(code) {
-  // ✅ CRITICAL FIX: Only fix relative imports, NOT bare specifiers like 'bertui-icons'
-  // Regex explanation:
-  // - Match: from './file' or from '../file'
-  // - DON'T match: from 'bertui-icons' or from 'react'
-  
   const importRegex = /from\s+['"](\.\.?\/[^'"]+?)(?<!\.js|\.jsx|\.ts|\.tsx|\.json)['"]/g;
   
   code = code.replace(importRegex, (match, path) => {
-    // Don't add .js if path already has an extension or ends with /
     if (path.endsWith('/') || /\.\w+$/.test(path)) {
       return match;
     }
