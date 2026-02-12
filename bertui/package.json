@@ -1,7 +1,7 @@
 {
   "name": "bertui",
-  "version": "1.1.5",
-  "description": "Lightning-fast React dev server powered by Bun and Elysia - Now with TypeScript support!",
+  "version": "1.1.7",
+  "description": "Lightning-fast React dev server powered by Bun - Now with Rust image optimization (WASM, no Rust required for users)",
   "type": "module",
   "main": "./index.js",
   "types": "./types/index.d.ts",
@@ -11,22 +11,32 @@
   "exports": {
     ".": {
       "types": "./types/index.d.ts",
-      "default": "./index.js"
+      "import": "./src/index.js",
+      "default": "./src/index.js"
     },
-    "./styles": "./src/styles/bertui.css",
-    "./logger": "./src/logger/logger.js",
+    "./hmr": {
+      "import": "./src/client/hmr-runtime.js"
+    },
+    "./image-optimizer": {
+      "import": "./src/image-optimizer/index.js"
+    },
     "./router": {
       "types": "./types/router.d.ts",
-      "default": "./src/router/Router.jsx"
+      "import": "./src/router/index.js"
     },
     "./config": {
       "types": "./types/config.d.ts",
-      "default": "./src/config/loadConfig.js"
-    }
+      "import": "./src/config/index.js"
+    },
+    "./logger": {
+      "import": "./src/logger/logger.js"
+    },
+    "./styles": "./src/styles/bertui.css"
   },
   "files": [
     "bin",
     "src",
+    "dist",
     "types",
     "index.js",
     "README.md",
@@ -35,43 +45,51 @@
   "scripts": {
     "dev": "bun bin/bertui.js dev",
     "build": "bun bin/bertui.js build",
+    "build:wasm": "cd src/image-optimizer-rust && wasm-pack build --target web --out-dir ../../dist/image-optimizer/wasm && bun run fix:wasm",
+    "fix:wasm": "node scripts/fix-wasm-exports.js",
+    "prepublishOnly": "echo 'Skipping wasm build'",
     "test": "cd test-app && bun run dev"
+  },
+  "dependencies": {
+    "elysia": "^1.0.0",
+    "ernest-logger": "^2.0.0",
+    "lightningcss": "^1.30.2",
+    "react-refresh": "^0.14.0"
+  },
+  "peerDependencies": {
+    "bun": ">=1.0.0",
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^19.2.3"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "oxipng": "^1.0.1",
+    "wasm-pack": "^0.12.1"
+  },
+  "optionalDependencies": {
+    "@bertui/image-optimizer-wasm": "0.1.0",
+    "oxipng": "^8.0.0"
   },
   "keywords": [
     "react",
     "bun",
-    "dev-server",
-    "vite-alternative",
     "elysia",
-    "build-tool",
-    "bundler",
-    "fast",
     "hmr",
-    "file-based-routing",
-    "typescript",
+    "fast-refresh",
+    "image-optimization",
+    "rust",
+    "wasm",
+    "server-islands",
     "seo",
     "sitemap",
-    "server-islands"
+    "typescript"
   ],
   "author": "Pease Ernest",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/BunElysiaReact/BERTUI.git"
-  },
-  "dependencies": {
-    "elysia": "^1.0.0",
-    "ernest-logger": "^2.0.0",
-    "lightningcss": "^1.30.2"
-  },
-  "peerDependencies": {
-    "react": "^18.0.0 || ^19.0.0",
-    "react-dom": "^19.2.3",
-    "bun": ">=1.0.0"
-  },
-  "devDependencies": {
-    "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0"
   },
   "engines": {
     "bun": ">=1.0.0"

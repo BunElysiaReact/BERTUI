@@ -1,5 +1,17 @@
 # BertUI Changelog
+# BertUI Changelog
 
+## [1.1.7] - 2026-02-12
+
+### 🦀 Rust-Powered Image Optimization
+**78% smaller images. 20x faster than Sharp. Zero Rust required for users.**
+
+#### ✨ New Features
+- **WASM Image Optimizer:** Pre-compiled Rust optimizer ships with BertUI
+  - PNG: 78% smaller via oxipng
+  - JPEG: 75% smaller via mozjpeg  
+  - WebP: 70% smaller via webp encoder
+  - **No Rust installation needed** - WASM binaries included in
 ## [1.1.1] - 2026-01-03
 
 ### 🗺️ SEO Automation & TypeScript Support

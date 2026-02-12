@@ -1,0 +1,26 @@
+# Rust source - NOT shipped to users
+src/image-optimizer-rust/
+src/image-optimizer-rust/**/*
+
+# Build scripts
+scripts/build-wasm.js
+scripts/fix-wasm-exports.js
+
+# Rust artifacts
+**/*.rs
+Cargo.toml
+Cargo.lock
+target/
+
+# DO ship WASM binaries
+!dist/image-optimizer/wasm/**/*
+
+# Tests
+test-app/
+test/
+
+# Docs
+docs/
+*.md
+!README.md
+!LICENSE

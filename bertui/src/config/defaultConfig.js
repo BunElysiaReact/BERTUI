@@ -1,7 +1,4 @@
-// ============================================
-// FILE: bertui/src/config/defaultConfig.js (UPDATED)
-// ============================================
-
+// bertui/src/config/defaultConfig.js - CLEANED
 export const defaultConfig = {
   siteName: "BertUI App",
   baseUrl: "http://localhost:3000",
@@ -27,11 +24,5 @@ export const defaultConfig = {
   robots: {
     disallow: [],
     crawlDelay: null
-  },
-  
-  // ✅ NEW: PageBuilder defaults
-  pageBuilder: {
-    enabled: false,
-    sources: []
   }
 };
