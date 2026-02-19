@@ -1,6 +1,6 @@
 {
   "name": "bertui",
-  "version": "1.1.8",
+  "version": "1.1.9",
   "description": "Lightning-fast React dev server powered by Bun - Now with Rust image optimization (WASM, no Rust required for users)",
   "type": "module",
   "main": "./index.js",
@@ -45,6 +45,8 @@
   "scripts": {
     "dev": "bun bin/bertui.js dev",
     "build": "bun bin/bertui.js build",
+    "serve": "bun bin/bertui.js serve",
+    "preview": "bun bin/bertui.js serve --port 5000",
     "build:wasm": "cd src/image-optimizer-rust && wasm-pack build --target web --out-dir ../../dist/image-optimizer/wasm && bun run fix:wasm",
     "fix:wasm": "node scripts/fix-wasm-exports.js",
     "prepublishOnly": "echo 'Note: Ensure WASM is built via build:wasm before publishing'",
@@ -69,7 +71,8 @@
   },
   "optionalDependencies": {
     "@bertui/image-optimizer-wasm": "0.1.0",
-    "oxipng": "^8.0.0"
+    "oxipng": "^8.0.0",
+    "sass": "^1.69.5"
   },
   "keywords": [
     "react",

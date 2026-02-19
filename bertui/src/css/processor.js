@@ -125,3 +125,48 @@ export function extractCSSImports(code) {
 export function isCSSFile(filename) {
   return filename.toLowerCase().endsWith('.css');
 }
+
+// ============================================
+// OPTIONAL SCSS SUPPORT - COMMENTED OUT BY DEFAULT
+// Uncomment only if you install 'sass' package
+// ============================================
+
+
+export async function processSCSS(scssCode, options = {}) {
+  try {
+    // Dynamic import so it doesn't fail if sass isn't installed
+    const sass = await import('sass').catch(() => {
+      throw new Error('sass package not installed. Run: bun add sass');
+    });
+    
+    const result = sass.compileString(scssCode, {
+      style: options.compressed ? 'compressed' : 'expanded',
+      sourceMap: false,
+      loadPaths: options.loadPaths || []
+    });
+    
+    return result.css;
+  } catch (error) {
+    logger.error(`SCSS compilation failed: ${error.message}`);
+    throw error;
+  }
+}
+
+export async function compileSCSSFile(filePath, options = {}) {
+  try {
+    const sass = await import('sass').catch(() => {
+      throw new Error('sass package not installed. Run: bun add sass');
+    });
+    
+    const result = sass.compile(filePath, {
+      style: options.compressed ? 'compressed' : 'expanded',
+      sourceMap: false,
+      loadPaths: options.loadPaths || [require('path').dirname(filePath)]
+    });
+    
+    return result.css;
+  } catch (error) {
+    logger.error(`SCSS file compilation failed: ${error.message}`);
+    throw error;
+  }
+}

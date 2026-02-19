@@ -1,6 +1,7 @@
-// src/cli.js
+// bertui/src/cli.js - WITH SERVE COMMAND
 import { startDev } from './dev.js';
 import { buildProduction } from './build.js';
+import { startPreviewServer } from './serve.js'; // NEW
 import logger from './logger/logger.js';
 
 export function program() {
@@ -22,9 +23,20 @@ export function program() {
       });
       break;
     
+    // ✅ NEW: Serve command for production preview
+    case 'serve':
+    case 'preview':
+      const previewPort = getArg('--port', '-p') || 5000;
+      startPreviewServer({
+        port: parseInt(previewPort),
+        root: process.cwd(),
+        dir: 'dist' // Default to dist folder
+      });
+      break;
+    
     case '--version':
     case '-v':
-      console.log('bertui v0.1.0');
+      console.log('bertui v1.1.9');
       break;
     
     case '--help':
@@ -50,17 +62,20 @@ function showHelp() {
   logger.bigLog('BERTUI CLI', { color: 'blue' });
   console.log(`
 Commands:
-  bertui dev              Start development server
+  bertui dev [--port]     Start development server (default: 3000)
   bertui build            Build for production
+  bertui serve [--port]   Preview production build (default: 5000)
   bertui --version        Show version
   bertui --help           Show help
 
 Options:
-  --port, -p <number>     Port for dev server (default: 3000)
+  --port, -p <number>     Port for server (dev: 3000, serve: 5000)
 
 Examples:
   bertui dev
   bertui dev --port 8080
   bertui build
+  bertui serve
+  bertui serve --port 4000
   `);
 }

@@ -1,10 +1,9 @@
-// bertui/src/server/dev-server-utils.js - NEW FILE
-// Shared utilities for dev server (extracted from dev-server.js)
-
+// bertui/src/server/dev-server-utils.js - WITH CACHE IMPORT
 import { join, extname } from 'path';
 import { existsSync, readdirSync, watch } from 'fs';
 import logger from '../logger/logger.js';
 import { compileProject } from '../client/compiler.js';
+import { globalCache } from '../utils/cache.js'; // ✅ Now this works!
 
 // Image content type mapping
 export function getImageContentType(ext) {
@@ -48,8 +47,17 @@ export function getContentType(ext) {
   return types[ext] || 'text/plain';
 }
 
-// HTML generator
+// HTML generator with caching
 export async function serveHTML(root, hasRouter, config, port) {
+  const cacheKey = `html:${root}:${port}`;
+  
+  // Try cache first
+  const cached = globalCache.get(cacheKey, { ttl: 1000 }); // 1 second cache during dev
+  if (cached) {
+    logger.debug('⚡ Serving cached HTML');
+    return cached;
+  }
+  
   const meta = config.meta || {};
   
   const srcStylesDir = join(root, 'src', 'styles');
@@ -203,10 +211,13 @@ ${bertuiAnimateStylesheet}
 </body>
 </html>`;
   
+  // Cache the HTML
+  globalCache.set(cacheKey, html, { ttl: 1000 });
+  
   return html;
 }
 
-// File watcher setup
+// File watcher setup (unchanged)
 export function setupFileWatcher(root, compiledDir, clients, onRecompile) {
   const srcDir = join(root, 'src');
   const configPath = join(root, 'bertui.config.js');
