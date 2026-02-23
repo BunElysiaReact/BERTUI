@@ -1,94 +1,50 @@
-// src/pages/index.jsx
 import { Link } from 'bertui/router';
-import '../styles/home.css';
+import styles from '../styles/home.module.css';
+import '../styles/global.css';
 
 export default function Home() {
   return (
-    <div className="home-container">
-      <nav className="home-nav">
-        <h2 className="home-logo">⚡ BertUI</h2>
-        <div className="home-nav-links">
-          <Link to="/" className="nav-link active">Home</Link>
-          <Link to="/about" className="nav-link">About</Link>
-          <Link to="/server-islands" className="nav-link">Server Islands</Link>
-        </div>
-      </nav>
-
-      <main className="home-main">
-        <h1 className="home-title">
-          Build Lightning-Fast
-          <br />
-          React Apps with BertUI
+    <div className={styles.container}>
+      <header className={styles.hero}>
+        <div className={styles.badge}>⚡ BertUI v1.2.0</div>
+        <h1 className={styles.title}>
+          Build Fast React Apps
+          <span className={styles.gradient}> with BertUI</span>
         </h1>
-
-        <p className="home-subtitle">
-          <strong>Bun + Elysia + React + Template + User Interface</strong>
-          <br />
-          494ms dev server • 265ms builds • Perfect SEO with Server Islands
+        <p className={styles.subtitle}>
+          File-based routing · Server Islands · Layouts · Middleware · Partial Hydration
         </p>
-
-        <div className="home-cta">
-          <Link to="/server-islands" className="btn btn-primary">
-            Get Started →
-          </Link>
-          <Link to="/about" className="btn btn-secondary">
-            Learn More
-          </Link>
+        <div className={styles.cta}>
+          <Link to="/about" className={styles.btnPrimary}>Explore Features →</Link>
+          <Link to="/blog" className={styles.btnSecondary}>View Blog</Link>
         </div>
+      </header>
 
-        <div className="home-features">
-          <FeatureCard 
-            icon="⚡"
-            title="Lightning Fast"
-            description="494ms dev server startup and 30ms HMR updates."
-          />
-          <FeatureCard 
-            icon="📁"
-            title="File-Based Routing"
-            description="Create pages/about.jsx and get /about route automatically."
-          />
-          <FeatureCard 
-            icon="🏝️"
-            title="Server Islands"
-            description="Add one line, get static HTML. Perfect SEO without complexity."
-          />
-        </div>
+      <section className={styles.features}>
+        <Feature icon="📁" title="File-Based Routing" desc="Create a file in src/pages/ and get a route. No config." />
+        <Feature icon="🏝️" title="Server Islands" desc="Export serverIsland = true for zero-JS static HTML." />
+        <Feature icon="📐" title="Layouts" desc="src/layouts/default.tsx wraps every page automatically." />
+        <Feature icon="🛡️" title="Middleware" desc="src/middleware.ts runs before every single request." />
+        <Feature icon="⚡" title="Partial Hydration" desc="Static pages ship zero JS. Auto-detected, zero config." />
+        <Feature icon="🎨" title="CSS Modules" desc="Button.module.css — scoped styles, zero config." />
+      </section>
 
-        <div className="home-stack">
-          <h2>What is BertUI?</h2>
-          <p><strong>B</strong>un - Fastest JavaScript runtime</p>
-          <p><strong>E</strong>lysia - Lightning web framework</p>
-          <p><strong>R</strong>eact - UI library (98% of BertUI is React!)</p>
-          <p><strong>T</strong>emplate - This starter you're using</p>
-          <p><strong>UI</strong> - Beautiful user interfaces</p>
-        </div>
-
-        <div className="home-start">
-          <h2>Ready to build?</h2>
-          <code className="home-start-code">bunx create-bertui my-app</code>
-          <p>
-            Full docs: <a href="https://bertui-docswebsite.vercel.app/" target="_blank" rel="noopener">bertui-docswebsite.vercel.app</a>
-          </p>
-        </div>
-      </main>
-
-      <footer className="home-footer">
-        <p>Built with BertUI v1.1.0 • Created by Pease Ernest</p>
-        <p>
-          <a href="https://github.com/BunElysiaReact/BERTUI" target="_blank" rel="noopener">GitHub</a> • 
-          <a href="https://bertui-docswebsite.vercel.app/" target="_blank" rel="noopener">Docs</a>
-        </p>
-      </footer>
+      <section className={styles.quickstart}>
+        <h2>Quick Start</h2>
+        <pre className={styles.code}>{`bunx create-bertui my-app
+cd my-app
+bun run dev`}</pre>
+      </section>
     </div>
   );
 }
 
-function FeatureCard({ icon, title, description }) {
+function Feature({ icon, title, desc }) {
   return (
-    <div className="feature-card">
-      <div className="feature-icon">{icon}</div>
-      <h3 className="feature-title">{title}</h3>
-      <p className="feature-description">{description}</p>
+    <div className={styles.featureCard}>
+      <span className={styles.featureIcon}>{icon}</span>
+      <h3>{title}</h3>
+      <p>{desc}</p>
     </div>
   );
 }

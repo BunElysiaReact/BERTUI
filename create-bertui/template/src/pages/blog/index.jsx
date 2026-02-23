@@ -1,56 +1,55 @@
 import { Link } from 'bertui/router';
-import '../styles/blog.css';
+import styles from '../styles/blog.module.css';
+
+// Wrapped by src/layouts/blog.tsx automatically (matches /blog/*)
 
 const posts = [
   {
     slug: 'getting-started',
     title: 'Getting Started with BertUI',
-    excerpt: 'Learn how to create your first BertUI application in minutes.',
-    date: 'Jan 15, 2024',
-    readTime: '5 min'
+    excerpt: 'File-based routing, zero config, 93ms builds. Here\'s how to hit the ground running.',
+    date: 'Feb 20, 2026',
+    readTime: '5 min',
+    tag: 'Tutorial',
   },
   {
-    slug: 'routing-guide',
-    title: 'Mastering File-based Routing',
-    excerpt: 'Deep dive into BertUI\'s powerful routing system.',
-    date: 'Jan 20, 2024',
-    readTime: '8 min'
+    slug: 'css-modules',
+    title: 'CSS Modules — Scoped Styles, Zero Config',
+    excerpt: 'Name your file Button.module.css and BertUI handles scoping automatically.',
+    date: 'Feb 18, 2026',
+    readTime: '3 min',
+    tag: 'CSS',
   },
   {
-    slug: 'performance',
-    title: 'Building Fast Apps',
-    excerpt: 'Tips and tricks for maximum performance.',
-    date: 'Jan 25, 2024',
-    readTime: '6 min'
-  }
+    slug: 'server-islands',
+    title: 'Server Islands & Partial Hydration',
+    excerpt: 'Ship zero JS to static pages. One export, instant content, perfect SEO.',
+    date: 'Feb 15, 2026',
+    readTime: '6 min',
+    tag: 'Performance',
+  },
 ];
 
 export default function Blog() {
   return (
-    <div className="blog-container">
-      <h1 className="blog-title">Blog</h1>
-      
-      <div className="blog-posts">
-        {posts.map((post) => (
-          <article key={post.slug} className="blog-post">
-            <h2 className="blog-post-title">
-              <Link to={`/blog/${post.slug}`} className="blog-post-link">
-                {post.title}
-              </Link>
+    <div className={styles.container}>
+      <h1 className={styles.title}>Blog</h1>
+      <p className={styles.subtitle}>Guides, tips, and deep dives on BertUI.</p>
+
+      <div className={styles.posts}>
+        {posts.map(post => (
+          <article key={post.slug} className={styles.post}>
+            <span className={styles.tag}>{post.tag}</span>
+            <h2 className={styles.postTitle}>
+              <Link to={`/blog/${post.slug}`}>{post.title}</Link>
             </h2>
-            
-            <p className="blog-post-excerpt">{post.excerpt}</p>
-            
-            <div className="blog-post-meta">
+            <p className={styles.excerpt}>{post.excerpt}</p>
+            <div className={styles.meta}>
               <span>📅 {post.date}</span>
               <span>⏱️ {post.readTime}</span>
             </div>
           </article>
         ))}
-      </div>
-      
-      <div className="blog-back">
-        <Link to="/" className="btn btn-back">← Back to Home</Link>
       </div>
     </div>
   );
