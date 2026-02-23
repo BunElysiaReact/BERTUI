@@ -1,6 +1,6 @@
 {
   "name": "bertui",
-  "version": "1.1.9",
+  "version": "1.2.0",
   "description": "Lightning-fast React dev server powered by Bun - Now with Rust image optimization (WASM, no Rust required for users)",
   "type": "module",
   "main": "./index.js",

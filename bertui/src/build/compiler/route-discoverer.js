@@ -22,9 +22,11 @@ export async function discoverRoutes(pagesDir) {
           const fileName = entry.name.replace(ext, '');
           let route = '/' + relativePath.replace(/\\/g, '/').replace(ext, '');
           
+          const RESERVED = ['index', 'loading'];
           if (fileName === 'index') {
             route = route.replace('/index', '') || '/';
           }
+          if (RESERVED.includes(fileName)) continue;
           
           const isDynamic = fileName.includes('[') && fileName.includes(']');
           

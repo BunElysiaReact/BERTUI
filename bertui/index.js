@@ -1,6 +1,4 @@
-// ============================================
-// FILE: bertui/index.js (Located in root)
-// ============================================
+// bertui/index.js - v1.2.0 with all features
 
 // Compiler
 export { compileProject, compileFile } from './src/client/compiler.js';
@@ -11,11 +9,11 @@ export { discoverRoutes } from './src/build/compiler/route-discoverer.js';
 export { hmr } from './src/client/hmr-runtime.js';
 
 // Image Optimizer
-export { 
-  optimizeImage, 
-  optimizeImagesBatch, 
-  hasWasm, 
-  version as optimizerVersion 
+export {
+  optimizeImage,
+  optimizeImagesBatch,
+  hasWasm,
+  version as optimizerVersion,
 } from './src/image-optimizer/index.js';
 
 // Build
@@ -35,41 +33,63 @@ export { default as logger } from './src/logger/logger.js';
 // CLI
 export { program } from './src/cli.js';
 
+// ✅ NEW: Middleware system
+export {
+  MiddlewareManager,
+  loadMiddleware,
+  runMiddleware,
+  MiddlewareContext,
+} from './src/middleware/index.js';
+
+// ✅ NEW: Layout system
+export {
+  discoverLayouts,
+  compileLayouts,
+  matchLayout,
+  generateLayoutWrapper,
+  injectLayoutsIntoRouter,
+} from './src/layouts/index.js';
+
+// ✅ NEW: Loading states
+export {
+  discoverLoadingComponents,
+  compileLoadingComponents,
+  generateLoadingAwareRouter,
+  getLoadingScript,
+  DEFAULT_LOADING_HTML,
+} from './src/loading/index.js';
+
+// ✅ NEW: Partial hydration
+export {
+  needsHydration,
+  getInteractiveFeatures,
+  analyzeRoutes,
+  generatePartialHydrationCode,
+  logHydrationReport,
+} from './src/hydration/index.js';
+
+// ✅ NEW: Bundle analyzer
+export { analyzeBuild } from './src/analyzer/index.js';
+
+// ✅ NEW: CLI scaffolder
+export { scaffold, parseCreateArgs } from './src/scaffolder/index.js';
+
+// Server
+export { createDevHandler } from './src/server/dev-handler.js';
+export { startDevServer } from './src/server/dev-server.js';
+
+// CSS
+export { minifyCSS, combineCSS } from './src/css/processor.js';
+
+// Images
+export { copyImagesSync, isImageFile } from './src/images/index.js';
+
+// Server Islands
+export {
+  extractStaticHTML,
+  isServerIsland,
+  validateServerIsland,
+} from './src/server-islands/index.js';
+
 // Version
 export const version = '1.2.0';
-
-// Import for default export
-import { compileProject, compileFile } from './src/client/compiler.js';
-import { compileForBuild } from './src/build/compiler/index.js';
-import { discoverRoutes } from './src/build/compiler/route-discoverer.js';
-import { hmr } from './src/client/hmr-runtime.js';
-import { optimizeImage, optimizeImagesBatch } from './src/image-optimizer/index.js';
-import { optimizeImages } from './src/build/image-optimizer.js';
-import { buildProduction } from './src/build.js';
-import { Router, Link, useRouter } from './src/router/index.js';
-import { SSRRouter } from './src/router/SSRRouter.js';
-import { loadConfig, defaultConfig } from './src/config/index.js';
-import logger from './src/logger/logger.js';
-import { program } from './src/cli.js';
-
-// Default export
-export default {
-  compileProject,
-  compileFile,
-  compileForBuild,
-  discoverRoutes,
-  hmr,
-  optimizeImage,
-  optimizeImagesBatch,
-  optimizeImages,
-  buildProduction,
-  Router,
-  Link,
-  useRouter,
-  SSRRouter,
-  loadConfig,
-  defaultConfig,
-  logger,
-  program,
-  version: '1.2.0'
-};

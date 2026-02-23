@@ -3,7 +3,7 @@
 
 import { validateServerIsland } from '../build/server-island-validator.js';
 
-export function extractStaticHTML(componentCode) {
+function extractStaticHTML(componentCode) {
   // For now, use existing regex-based extractor
   // TODO: Replace with proper AST parser
   return extractJSXFromReturn(componentCode);

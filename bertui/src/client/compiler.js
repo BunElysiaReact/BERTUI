@@ -1,9 +1,6 @@
-// ============================================
-// FILE: bertui/src/client/compiler.js (UPDATED - Skip templates/)
-// ============================================
-
 import { existsSync, mkdirSync, readdirSync, statSync } from 'fs';
 import { join, extname, relative, dirname } from 'path';
+import { transform } from 'lightningcss';
 import logger from '../logger/logger.js';
 import { loadEnvVariables, generateEnvCode, replaceEnvInCode } from '../utils/env.js';
 
@@ -63,17 +60,18 @@ export async function compileProject(root) {
   return { outDir, stats, routes };
 }
 
-// NEW EXPORT - Single file compilation for HMR
 export async function compileFile(srcPath, root) {
   const srcDir = join(root, 'src');
   const outDir = join(root, '.bertui', 'compiled');
   const envVars = loadEnvVariables(root);
-  
   const relativePath = relative(srcDir, srcPath);
   const ext = extname(srcPath);
   
-  if (!existsSync(outDir)) {
-    mkdirSync(outDir, { recursive: true });
+  if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
+  
+  if (srcPath.endsWith('.module.css')) {
+    await compileCSSModule(srcPath, root);
+    return { success: true };
   }
   
   if (['.jsx', '.tsx', '.ts'].includes(ext)) {
@@ -83,28 +81,29 @@ export async function compileFile(srcPath, root) {
       outputPath: relativePath.replace(/\.(jsx|tsx|ts)$/, '.js'),
       success: true
     };
-  } else if (ext === '.js') {
+  }
+  
+  if (ext === '.js') {
     const fileName = srcPath.split('/').pop();
     const outPath = join(outDir, fileName);
     let code = await Bun.file(srcPath).text();
-    
-    code = removeCSSImports(code);
+    code = transformCSSModuleImports(code, srcPath, root);
+    code = removePlainCSSImports(code);
     code = replaceEnvInCode(code, envVars);
     code = fixRouterImports(code, outPath, root);
-    
     if (usesJSX(code) && !code.includes('import React')) {
       code = `import React from 'react';\n${code}`;
     }
-    
     await Bun.write(outPath, code);
-    return {
-      outputPath: relativePath,
-      success: true
-    };
+    return { outputPath: relativePath, success: true };
   }
   
   return { success: false };
 }
+
+// ============================================
+// ROUTE DISCOVERY
+// ============================================
 
 async function discoverRoutes(pagesDir) {
   const routes = [];
@@ -124,20 +123,22 @@ async function discoverRoutes(pagesDir) {
         
         if (['.jsx', '.tsx', '.js', '.ts'].includes(ext)) {
           const fileName = entry.name.replace(ext, '');
+
+          // ✅ Only loading is reserved — index is a valid route (renamed to /)
+          if (fileName === 'loading') continue;
+
           let route = '/' + relativePath.replace(/\\/g, '/').replace(ext, '');
-          
           if (fileName === 'index') {
             route = route.replace('/index', '') || '/';
           }
           
           const isDynamic = fileName.includes('[') && fileName.includes(']');
-          const type = isDynamic ? 'dynamic' : 'static';
           
           routes.push({
             route: route === '' ? '/' : route,
             file: relativePath.replace(/\\/g, '/'),
             path: fullPath,
-            type
+            type: isDynamic ? 'dynamic' : 'static'
           });
         }
       }
@@ -146,14 +147,16 @@ async function discoverRoutes(pagesDir) {
   
   await scanDirectory(pagesDir);
   routes.sort((a, b) => {
-    if (a.type === b.type) {
-      return a.route.localeCompare(b.route);
-    }
+    if (a.type === b.type) return a.route.localeCompare(b.route);
     return a.type === 'static' ? -1 : 1;
   });
   
   return routes;
 }
+
+// ============================================
+// ROUTER GENERATION
+// ============================================
 
 async function generateRouter(routes, outDir, root) {
   const imports = routes.map((route, i) => {
@@ -167,7 +170,7 @@ async function generateRouter(routes, outDir, root) {
     return `  { path: '${route.route}', component: ${componentName}, type: '${route.type}' }`;
   }).join(',\n');
   
-  const routerComponentCode = `import React, { useState, useEffect, createContext, useContext } from 'react';
+  const routerCode = `import React, { useState, useEffect, createContext, useContext } from 'react';
 
 const RouterContext = createContext(null);
 
@@ -230,16 +233,16 @@ export function Router({ routes }) {
 
 export function Link({ to, children, ...props }) {
   const { navigate } = useRouter();
-  return React.createElement('a', { 
-    href: to, 
-    onClick: (e) => { e.preventDefault(); navigate(to); }, 
-    ...props 
+  return React.createElement('a', {
+    href: to,
+    onClick: (e) => { e.preventDefault(); navigate(to); },
+    ...props
   }, children);
 }
 
 function NotFound() {
   return React.createElement('div', {
-    style: { display: 'flex', flexDirection: 'column', alignItems: 'center', 
+    style: { display: 'flex', flexDirection: 'column', alignItems: 'center',
              justifyContent: 'center', minHeight: '100vh', fontFamily: 'system-ui' }
   },
     React.createElement('h1', { style: { fontSize: '6rem', margin: 0 } }, '404'),
@@ -254,8 +257,12 @@ export const routes = [
 ${routeConfigs}
 ];`;
   
-  await Bun.write(join(outDir, 'router.js'), routerComponentCode);
+  await Bun.write(join(outDir, 'router.js'), routerCode);
 }
+
+// ============================================
+// DIRECTORY COMPILATION
+// ============================================
 
 async function compileDirectory(srcDir, outDir, root, envVars) {
   const stats = { files: 0, skipped: 0 };
@@ -266,12 +273,10 @@ async function compileDirectory(srcDir, outDir, root, envVars) {
     const stat = statSync(srcPath);
     
     if (stat.isDirectory()) {
-      // ✅ NEW: Skip templates directory
       if (file === 'templates') {
-        logger.debug('⏭️  Skipping src/templates/ (PageBuilder templates only)');
+        logger.debug('⏭️  Skipping src/templates/');
         continue;
       }
-      
       const subOutDir = join(outDir, file);
       mkdirSync(subOutDir, { recursive: true });
       const subStats = await compileDirectory(srcPath, subOutDir, root, envVars);
@@ -280,14 +285,16 @@ async function compileDirectory(srcDir, outDir, root, envVars) {
     } else {
       const ext = extname(file);
       const relativePath = relative(join(root, 'src'), srcPath);
-      
-      if (ext === '.css') {
+
+      // ✅ MUST check .module.css BEFORE plain .css
+      if (file.endsWith('.module.css')) {
+        await compileCSSModule(srcPath, root);
+        stats.files++;
+      } else if (ext === '.css') {
+        // Plain CSS → copy to .bertui/styles/ for <link> injection
         const stylesOutDir = join(root, '.bertui', 'styles');
-        if (!existsSync(stylesOutDir)) {
-          mkdirSync(stylesOutDir, { recursive: true });
-        }
-        const cssOutPath = join(stylesOutDir, file);
-        await Bun.write(cssOutPath, Bun.file(srcPath));
+        if (!existsSync(stylesOutDir)) mkdirSync(stylesOutDir, { recursive: true });
+        await Bun.write(join(stylesOutDir, file), Bun.file(srcPath));
         logger.debug(`Copied CSS: ${relativePath}`);
         stats.files++;
       } else if (['.jsx', '.tsx', '.ts'].includes(ext)) {
@@ -296,20 +303,17 @@ async function compileDirectory(srcDir, outDir, root, envVars) {
       } else if (ext === '.js') {
         const outPath = join(outDir, file);
         let code = await Bun.file(srcPath).text();
-        
-        code = removeCSSImports(code);
+        code = transformCSSModuleImports(code, srcPath, root);
+        code = removePlainCSSImports(code);
         code = replaceEnvInCode(code, envVars);
         code = fixRouterImports(code, outPath, root);
-        
         if (usesJSX(code) && !code.includes('import React')) {
           code = `import React from 'react';\n${code}`;
         }
-        
         await Bun.write(outPath, code);
         logger.debug(`Copied: ${relativePath}`);
         stats.files++;
       } else {
-        logger.debug(`Skipped: ${relativePath}`);
         stats.skipped++;
       }
     }
@@ -318,6 +322,114 @@ async function compileDirectory(srcDir, outDir, root, envVars) {
   return stats;
 }
 
+// ============================================
+// CSS MODULES
+// ============================================
+
+function hashClassName(filename, className) {
+  const str = filename + className;
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash).toString(36).slice(0, 5);
+}
+
+function scopeCSSModule(cssText, filename) {
+  const classNames = new Set();
+  const classRegex = /\.([a-zA-Z_][a-zA-Z0-9_-]*)\s*[{,\s:]/g;
+  let match;
+  while ((match = classRegex.exec(cssText)) !== null) {
+    classNames.add(match[1]);
+  }
+
+  const mapping = {};
+  for (const cls of classNames) {
+    mapping[cls] = `${cls}_${hashClassName(filename, cls)}`;
+  }
+
+  let scopedCSS = cssText;
+  for (const [original, scoped] of Object.entries(mapping)) {
+    scopedCSS = scopedCSS.replace(
+      new RegExp(`\\.${original}(?=[\\s{,:\\[#.>+~)\\]])`, 'g'),
+      `.${scoped}`
+    );
+  }
+
+  return { mapping, scopedCSS };
+}
+
+async function compileCSSModule(srcPath, root) {
+  const filename = srcPath.split('/').pop(); // e.g. home.module.css
+  const cssText = await Bun.file(srcPath).text();
+
+  const { mapping, scopedCSS } = scopeCSSModule(cssText, filename);
+
+  // Run through LightningCSS for nesting support
+  let finalCSS = scopedCSS;
+  try {
+    const { code } = transform({
+      filename,
+      code: Buffer.from(scopedCSS),
+      minify: false,
+      drafts: { nesting: true },
+      targets: { chrome: 90 << 16 }
+    });
+    finalCSS = code.toString();
+  } catch (e) {
+    logger.warn(`LightningCSS failed for ${filename}: ${e.message}`);
+  }
+
+  // ✅ Scoped CSS → .bertui/styles/ (served as <link> tags)
+  const stylesOutDir = join(root, '.bertui', 'styles');
+  if (!existsSync(stylesOutDir)) mkdirSync(stylesOutDir, { recursive: true });
+  await Bun.write(join(stylesOutDir, filename), finalCSS);
+
+  // ✅ JS mapping → .bertui/compiled/styles/ (flat, imported by pages)
+  const compiledStylesDir = join(root, '.bertui', 'compiled', 'styles');
+  if (!existsSync(compiledStylesDir)) mkdirSync(compiledStylesDir, { recursive: true });
+  const jsContent = `// CSS Module: ${filename} — auto-generated by BertUI\nconst styles = ${JSON.stringify(mapping, null, 2)};\nexport default styles;\n`;
+  await Bun.write(join(compiledStylesDir, filename + '.js'), jsContent);
+
+  logger.debug(`CSS Module: ${filename} → ${Object.keys(mapping).length} classes scoped`);
+}
+
+// Rewrite: import styles from '../styles/home.module.css'
+//      →   import styles from '../../styles/home.module.css.js'  (relative to compiled output)
+function transformCSSModuleImports(code, srcPath, root) {
+  const moduleImportRegex = /import\s+(\w+)\s+from\s+['"]([^'"]*\.module\.css)['"]/g;
+
+  // The compiled output of this file lives in .bertui/compiled/ + relative path from src/
+  const srcDir = join(root, 'src');
+  const relativeFromSrc = relative(srcDir, srcPath); // e.g. pages/about.jsx
+  const compiledFilePath = join(root, '.bertui', 'compiled', relativeFromSrc.replace(/\.(jsx|tsx|ts)$/, '.js'));
+  const compiledFileDir = dirname(compiledFilePath); // e.g. .bertui/compiled/pages/
+
+  const compiledStylesDir = join(root, '.bertui', 'compiled', 'styles');
+
+  code = code.replace(moduleImportRegex, (match, varName, importPath) => {
+    const filename = importPath.split('/').pop(); // e.g. home.module.css
+    const jsFile = join(compiledStylesDir, filename + '.js'); // absolute target
+    let rel = relative(compiledFileDir, jsFile).replace(/\\/g, '/');
+    if (!rel.startsWith('.')) rel = './' + rel;
+    return `import ${varName} from '${rel}'`;
+  });
+
+  return code;
+}
+
+// Remove plain CSS imports only — leave .module.css for transformCSSModuleImports
+function removePlainCSSImports(code) {
+  code = code.replace(/import\s+['"][^'"]*(?<!\.module)\.css['"];?\s*/g, '');
+  code = code.replace(/import\s+['"]bertui\/styles['"]\s*;?\s*/g, '');
+  return code;
+}
+
+// ============================================
+// FILE COMPILATION
+// ============================================
+
 async function compileFileInternal(srcPath, outDir, filename, relativePath, root, envVars) {
   const ext = extname(filename);
   const loader = ext === '.tsx' ? 'tsx' : ext === '.ts' ? 'ts' : 'jsx';
@@ -325,14 +437,16 @@ async function compileFileInternal(srcPath, outDir, filename, relativePath, root
   try {
     let code = await Bun.file(srcPath).text();
     
-    code = removeCSSImports(code);
+    // ✅ Transform module imports BEFORE stripping plain CSS
+    code = transformCSSModuleImports(code, srcPath, root);
+    code = removePlainCSSImports(code);
     code = removeDotenvImports(code);
     code = replaceEnvInCode(code, envVars);
     
     const outPath = join(outDir, filename.replace(/\.(jsx|tsx|ts)$/, '.js'));
     code = fixRouterImports(code, outPath, root);
     
-    const transpiler = new Bun.Transpiler({ 
+    const transpiler = new Bun.Transpiler({
       loader,
       tsconfig: {
         compilerOptions: {
@@ -349,7 +463,6 @@ async function compileFileInternal(srcPath, outDir, filename, relativePath, root
     }
     
     compiled = fixRelativeImports(compiled);
-    
     await Bun.write(outPath, compiled);
     logger.debug(`Compiled: ${relativePath} → ${filename.replace(/\.(jsx|tsx|ts)$/, '.js')}`);
   } catch (error) {
@@ -358,18 +471,16 @@ async function compileFileInternal(srcPath, outDir, filename, relativePath, root
   }
 }
 
+// ============================================
+// HELPERS
+// ============================================
+
 function usesJSX(code) {
-  return code.includes('React.createElement') || 
+  return code.includes('React.createElement') ||
          code.includes('React.Fragment') ||
          /<[A-Z]/.test(code) ||
          code.includes('jsx(') ||
          code.includes('jsxs(');
-}
-
-function removeCSSImports(code) {
-  code = code.replace(/import\s+['"][^'"]*\.css['"];?\s*/g, '');
-  code = code.replace(/import\s+['"]bertui\/styles['"]\s*;?\s*/g, '');
-  return code;
 }
 
 function removeDotenvImports(code) {
@@ -382,27 +493,17 @@ function removeDotenvImports(code) {
 function fixRouterImports(code, outPath, root) {
   const buildDir = join(root, '.bertui', 'compiled');
   const routerPath = join(buildDir, 'router.js');
-  
   const relativeToRouter = relative(dirname(outPath), routerPath).replace(/\\/g, '/');
   const routerImport = relativeToRouter.startsWith('.') ? relativeToRouter : './' + relativeToRouter;
-  
-  code = code.replace(
-    /from\s+['"]bertui\/router['"]/g,
-    `from '${routerImport}'`
-  );
-  
+  code = code.replace(/from\s+['"]bertui\/router['"]/g, `from '${routerImport}'`);
   return code;
 }
 
 function fixRelativeImports(code) {
   const importRegex = /from\s+['"](\.\.?\/[^'"]+?)(?<!\.js|\.jsx|\.ts|\.tsx|\.json)['"]/g;
-  
   code = code.replace(importRegex, (match, path) => {
-    if (path.endsWith('/') || /\.\w+$/.test(path)) {
-      return match;
-    }
+    if (path.endsWith('/') || /\.\w+$/.test(path)) return match;
     return `from '${path}.js'`;
   });
-  
   return code;
 }
