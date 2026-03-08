@@ -88,37 +88,18 @@ async function _compileDir(srcDir, buildDir, root, envVars, aliasMap) {
   logger.success(`✅ Compiled ${filesToCompile.length} files`);
 }
 
-// NEW FUNCTION: Rewrite node_module bare imports
+// ─────────────────────────────────────────────────────────────────────────────
+// _rewriteNodeModuleImports — intentionally a no-op.
+//
+// Previously this rewrote bare specifiers like 'react' → '/node_modules/react/index.js'
+// which caused "Could not resolve" errors during Bun.build because:
+//   1. 'react' is marked `external` in Bun.build and expected as a bare specifier.
+//   2. Other npm packages are better handled by Bun.build natively (tree-shaken + minified).
+//
+// Leaving bare specifiers untouched lets Bun.build do the right thing for both cases.
+// ─────────────────────────────────────────────────────────────────────────────
 function _rewriteNodeModuleImports(code) {
-  // Match: import ... from 'package-name' (but not relative or alias imports)
-  const bareImportRegex = /from\s+['"]([^'"./][^'"]*?)['"]/g;
-  
-  return code.replace(bareImportRegex, (match, pkgName) => {
-    // Skip if it's an alias (already handled by rewriteAliasImports)
-    if (pkgName.startsWith('amani') || pkgName.startsWith('ui')) {
-      return match;
-    }
-    
-    // Skip if it's a URL import
-    if (pkgName.startsWith('http://') || pkgName.startsWith('https://')) {
-      return match;
-    }
-    
-    // Convert bare specifier to node_modules path
-    // Examples:
-    // 'date-fns' → '/node_modules/date-fns/index.js'
-    // 'lodash/merge' → '/node_modules/lodash/merge.js'
-    
-    // Handle subpaths (e.g., 'date-fns/format')
-    if (pkgName.includes('/')) {
-      const [basePkg, ...subPath] = pkgName.split('/');
-      const subPathStr = subPath.join('/');
-      return `from '/node_modules/${basePkg}/${subPathStr}.js'`;
-    }
-    
-    // Simple package import
-    return `from '/node_modules/${pkgName}/index.js'`;
-  });
+  return code;
 }
 
 async function _compileTSXFile(srcPath, buildDir, filename, root, envVars, configDir, aliasMap) {
@@ -163,8 +144,9 @@ async function _compileTSXFile(srcPath, buildDir, filename, root, envVars, confi
 
     // ✅ Alias rewrite AFTER transpile — Bun won't undo it
     compiled = rewriteAliasImports(compiled, outPath, aliasMap);
-    
-    // ✅ Rewrite node_module imports for TSX files
+
+    // NOTE: _rewriteNodeModuleImports is intentionally a no-op — bare specifiers
+    // are left for Bun.build to handle natively (tree-shaking + bundling).
     compiled = _rewriteNodeModuleImports(compiled);
 
     await Bun.write(outPath, compiled);
@@ -184,8 +166,8 @@ async function _compileJSFile(srcPath, buildDir, filename, root, envVars, aliasM
 
   // JS files don't go through Bun.Transpiler so rewrite is safe here
   code = rewriteAliasImports(code, outPath, aliasMap);
-  
-  // ✅ Rewrite node_module imports for JS files
+
+  // NOTE: _rewriteNodeModuleImports is intentionally a no-op — see above.
   code = _rewriteNodeModuleImports(code);
 
   if (_usesJSX(code) && !code.includes('import React')) {

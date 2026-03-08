@@ -1,4 +1,4 @@
-// bertui/src/build.js - WITH LAYOUTS + LOADING + PARTIAL HYDRATION + ANALYZER + IMPORTHOW + NODE_MODULES SUPPORT
+// bertui/src/build.js
 import { join } from 'path';
 import { existsSync, mkdirSync, rmSync, readdirSync, statSync } from 'fs';
 import logger from './logger/logger.js';
@@ -15,7 +15,9 @@ import { compileLayouts } from './layouts/index.js';
 import { compileLoadingComponents } from './loading/index.js';
 import { analyzeRoutes, logHydrationReport } from './hydration/index.js';
 import { analyzeBuild } from './analyzer/index.js';
-import { buildAliasMap, getAliasDirs } from './utils/importhow.js';
+import { buildAliasMap } from './utils/importhow.js';
+
+const TOTAL_STEPS = 10;
 
 export async function buildProduction(options = {}) {
   const root     = options.root || process.cwd();
@@ -24,219 +26,148 @@ export async function buildProduction(options = {}) {
 
   process.env.NODE_ENV = 'production';
 
-  logger.bigLog('BUILDING WITH SERVER ISLANDS 🏝️', { color: 'green' });
+  logger.printHeader('BUILD');
 
   if (existsSync(buildDir)) rmSync(buildDir, { recursive: true, force: true });
   if (existsSync(outDir))   rmSync(outDir,   { recursive: true, force: true });
   mkdirSync(buildDir, { recursive: true });
   mkdirSync(outDir,   { recursive: true });
 
-  const startTime = process.hrtime.bigint();
+  let totalKB = '0';
 
   try {
-    logger.info('Step 0: Loading environment variables...');
+    // ── Step 1: Env ──────────────────────────────────────────────────────────
+    logger.step(1, TOTAL_STEPS, 'Loading env');
     const envVars = loadEnvVariables(root);
-
     const { loadConfig } = await import('./config/loadConfig.js');
-    const config = await loadConfig(root);
-
-    // Log importhow aliases if any
+    const config    = await loadConfig(root);
     const importhow = config.importhow || {};
-    const aliasCount = Object.keys(importhow).length;
-    if (aliasCount > 0) {
-      logger.info(`🔗 importhow: ${aliasCount} alias(es) → ${Object.keys(importhow).join(', ')}`);
-    }
+    logger.stepDone('Loading env', `${Object.keys(envVars).length} vars`);
 
-    logger.info('Step 1: Compiling project...');
-    // ✅ Pass full config so compileForBuild gets importhow
+    // ── Step 2: Compile ──────────────────────────────────────────────────────
+    logger.step(2, TOTAL_STEPS, 'Compiling');
     const { routes, serverIslands, clientRoutes } = await compileForBuild(root, buildDir, envVars, config);
+    logger.stepDone('Compiling', `${routes.length} routes · ${serverIslands.length} islands`);
 
-    if (serverIslands.length > 0) {
-      logger.bigLog('SERVER ISLANDS DETECTED 🏝️', { color: 'cyan' });
-      logger.table(serverIslands.map(r => ({
-        route: r.route,
-        file:  r.file,
-        mode:  '🏝️ Server Island (SSG)',
-      })));
-    }
-
-    logger.info('Step 2: Compiling layouts...');
+    // ── Step 3: Layouts ──────────────────────────────────────────────────────
+    logger.step(3, TOTAL_STEPS, 'Layouts');
     const layouts = await compileLayouts(root, buildDir);
-    const layoutCount = Object.keys(layouts).length;
-    if (layoutCount > 0) logger.success(`📐 ${layoutCount} layout(s) compiled`);
+    logger.stepDone('Layouts', `${Object.keys(layouts).length} found`);
 
-    logger.info('Step 3: Compiling loading states...');
-    const loadingComponents = await compileLoadingComponents(root, buildDir);
+    // ── Step 4: Loading states ───────────────────────────────────────────────
+    logger.step(4, TOTAL_STEPS, 'Loading states');
+    await compileLoadingComponents(root, buildDir);
+    logger.stepDone('Loading states');
 
-    logger.info('Step 4: Analyzing routes for partial hydration...');
+    // ── Step 5: Hydration analysis ───────────────────────────────────────────
+    logger.step(5, TOTAL_STEPS, 'Hydration analysis');
     const analyzedRoutes = await analyzeRoutes(routes);
-    logHydrationReport(analyzedRoutes);
+    logger.stepDone('Hydration analysis',
+      `${analyzedRoutes.interactive.length} interactive · ${analyzedRoutes.static.length} static`);
 
-    logger.info('Step 5: Processing CSS...');
+    // ── Step 6: CSS ──────────────────────────────────────────────────────────
+    logger.step(6, TOTAL_STEPS, 'Processing CSS');
     await buildAllCSS(root, outDir);
+    logger.stepDone('Processing CSS');
 
-    logger.info('Step 6: Copying static assets...');
+    // ── Step 7: Static assets ────────────────────────────────────────────────
+    logger.step(7, TOTAL_STEPS, 'Static assets');
     await copyAllStaticAssets(root, outDir);
+    logger.stepDone('Static assets');
 
-    logger.info('Step 7: Bundling JavaScript...');
-    const buildEntry  = join(buildDir, 'main.js');
-    const routerPath  = join(buildDir, 'router.js');
-
-    if (!existsSync(buildEntry)) {
-      throw new Error('Build entry point missing (main.js not found in build dir)');
-    }
-
+    // ── Step 8: Bundle JS ────────────────────────────────────────────────────
+    logger.step(8, TOTAL_STEPS, 'Bundling JS');
+    const buildEntry = join(buildDir, 'main.js');
+    const routerPath = join(buildDir, 'router.js');
+    if (!existsSync(buildEntry)) throw new Error('main.js not found in build dir');
     const result = await bundleJavaScript(buildEntry, routerPath, outDir, envVars, buildDir, analyzedRoutes, importhow, root, config);
+    totalKB = (result.outputs.reduce((a, o) => a + (o.size || 0), 0) / 1024).toFixed(1);
+    logger.stepDone('Bundling JS', `${totalKB} KB · tree-shaken`);
 
-    logger.info('Step 8: Generating HTML...');
+    // ── Step 9: HTML ─────────────────────────────────────────────────────────
+    logger.step(9, TOTAL_STEPS, 'Generating HTML');
     await generateProductionHTML(root, outDir, result, routes, serverIslands, config);
+    logger.stepDone('Generating HTML', `${routes.length} pages`);
 
-    logger.info('Step 9: Generating sitemap.xml...');
+    // ── Step 10: Sitemap + robots ────────────────────────────────────────────
+    logger.step(10, TOTAL_STEPS, 'Sitemap & robots');
     await generateSitemap(routes, config, outDir);
-
-    logger.info('Step 10: Generating robots.txt...');
     await generateRobots(config, outDir, routes);
+    logger.stepDone('Sitemap & robots');
 
     if (existsSync(buildDir)) rmSync(buildDir, { recursive: true, force: true });
 
-    const endTime    = process.hrtime.bigint();
-    const durationMs = Number(endTime - startTime) / 1_000_000;
-
-    showBuildSummary(routes, serverIslands, clientRoutes, analyzedRoutes, durationMs);
-
-    logger.info('Generating bundle report...');
     await analyzeBuild(outDir, { outputFile: join(outDir, 'bundle-report.html') });
 
-    // ✅ FIX: Don't exit here, let the function complete naturally
-    logger.success('✅ Build complete!');
-    
-    // Return success instead of exiting
-    return { success: true, duration: durationMs };
+    // ── Summary ──────────────────────────────────────────────────────────────
+    logger.printSummary({
+      routes:        routes.length,
+      serverIslands: serverIslands.length,
+      interactive:   analyzedRoutes.interactive.length,
+      staticRoutes:  analyzedRoutes.static.length,
+      jsSize:        `${totalKB} KB`,
+      outDir:        'dist/',
+    });
+
+    return { success: true };
 
   } catch (error) {
-    logger.error(`Build failed: ${error.message}`);
-    if (error.stack) logger.error(error.stack);
+    logger.stepFail('Build', error.message);
     if (existsSync(buildDir)) rmSync(buildDir, { recursive: true, force: true });
-    
-    // ✅ FIX: Throw the error instead of exiting
     throw error;
   }
 }
 
-// NEW FUNCTION: Generate import map for production
+// ─────────────────────────────────────────────────────────────────────────────
+
 async function generateProductionImportMap(root, config) {
   const importMap = {
-    "react": "https://esm.sh/react@18.2.0",
-    "react-dom": "https://esm.sh/react-dom@18.2.0",
-    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client"
+    'react':             'https://esm.sh/react@18.2.0',
+    'react-dom':         'https://esm.sh/react-dom@18.2.0',
+    'react-dom/client':  'https://esm.sh/react-dom@18.2.0/client',
+    'react/jsx-runtime': 'https://esm.sh/react@18.2.0/jsx-runtime',
   };
-  
-  // Auto-detect node_modules packages for production
+
   const nodeModulesDir = join(root, 'node_modules');
-  
-  if (existsSync(nodeModulesDir)) {
-    try {
-      const packages = readdirSync(nodeModulesDir);
-      
-      for (const pkg of packages) {
-        // Skip system directories and already handled packages
-        if (pkg.startsWith('.') || pkg.startsWith('_')) continue;
-        if (pkg === 'react' || pkg === 'react-dom') continue;
-        if (pkg.includes('@')) continue; // Skip scoped packages for now
-        
-        const pkgDir = join(nodeModulesDir, pkg);
-        
-        try {
-          const stat = statSync(pkgDir);
-          if (!stat.isDirectory()) continue;
-        } catch {
-          continue;
-        }
-        
-        const pkgJsonPath = join(pkgDir, 'package.json');
-        if (!existsSync(pkgJsonPath)) continue;
-        
-        try {
-          const pkgJsonContent = await Bun.file(pkgJsonPath).text();
-          const pkgJson = JSON.parse(pkgJsonContent);
-          
-          // Look for browser-ready entry points
-          const possibleEntryPoints = [
-            pkgJson.browser,
-            pkgJson.module,
-            pkgJson.main,
-            'dist/index.js',
-            'lib/index.js',
-            'index.js'
-          ].filter(Boolean);
-          
-          let foundPath = null;
-          for (const entry of possibleEntryPoints) {
-            const fullPath = join(pkgDir, entry);
-            if (existsSync(fullPath)) {
-              // In production, we'll copy node_modules to dist/assets/node_modules/
-              foundPath = `/assets/node_modules/${pkg}/${entry}`;
-              break;
-            }
+  if (!existsSync(nodeModulesDir)) return importMap;
+
+  try {
+    for (const pkg of readdirSync(nodeModulesDir)) {
+      if (!pkg.startsWith('bertui-') || pkg.startsWith('.')) continue;
+      const pkgDir  = join(nodeModulesDir, pkg);
+      const pkgJson = join(pkgDir, 'package.json');
+      if (!existsSync(pkgJson)) continue;
+      try {
+        const p = JSON.parse(await Bun.file(pkgJson).text());
+        for (const entry of [p.browser, p.module, p.main, 'dist/index.js', 'index.js'].filter(Boolean)) {
+          if (existsSync(join(pkgDir, entry))) {
+            importMap[pkg] = `/assets/node_modules/${pkg}/${entry}`;
+            break;
           }
-          
-          if (foundPath) {
-            importMap[pkg] = foundPath;
-            logger.debug(`📦 Production map: ${pkg} → ${foundPath}`);
-          }
-          
-        } catch (error) {
-          // Silently skip packages we can't parse
-          continue;
         }
-      }
-    } catch (error) {
-      logger.warn(`Failed to scan node_modules for production: ${error.message}`);
+      } catch { continue; }
     }
-  }
-  
+  } catch { /* ignore */ }
+
   return importMap;
 }
 
-// NEW FUNCTION: Copy node_modules to dist
 async function copyNodeModulesToDist(root, outDir, importMap) {
-  const assetsNodeModulesDir = join(outDir, 'assets', 'node_modules');
-  mkdirSync(assetsNodeModulesDir, { recursive: true });
-  
-  const nodeModulesDir = join(root, 'node_modules');
-  const copied = new Set();
-  
-  for (const [pkg, assetPath] of Object.entries(importMap)) {
-    if (pkg === 'react' || pkg === 'react-dom' || pkg === 'react-dom/client') continue;
-    
-    // Extract the relative path from the import map
+  const dest = join(outDir, 'assets', 'node_modules');
+  mkdirSync(dest, { recursive: true });
+  const src = join(root, 'node_modules');
+
+  for (const [, assetPath] of Object.entries(importMap)) {
+    if (assetPath.startsWith('https://')) continue;
     const match = assetPath.match(/\/assets\/node_modules\/(.+)$/);
     if (!match) continue;
-    
-    const relPath = match[1];
-    const [pkgName, ...subPath] = relPath.split('/');
-    const sourceFile = join(nodeModulesDir, pkgName, ...subPath);
-    const destFile = join(assetsNodeModulesDir, pkgName, ...subPath);
-    
-    // Create destination directory
-    const destDir = join(assetsNodeModulesDir, pkgName, ...subPath.slice(0, -1));
-    mkdirSync(destDir, { recursive: true });
-    
-    try {
-      if (existsSync(sourceFile)) {
-        await Bun.write(destFile, Bun.file(sourceFile));
-        if (!copied.has(pkgName)) {
-          logger.debug(`📋 Copied ${pkgName} to dist/assets/node_modules/`);
-          copied.add(pkgName);
-        }
-      }
-    } catch (error) {
-      logger.warn(`⚠️  Failed to copy ${pkgName}: ${error.message}`);
-    }
-  }
-  
-  if (copied.size > 0) {
-    logger.success(`✅ Copied ${copied.size} node_modules to dist/assets/node_modules/`);
+    const parts   = match[1].split('/');
+    const pkgName = parts[0];
+    const subPath = parts.slice(1);
+    const srcFile  = join(src, pkgName, ...subPath);
+    const destFile = join(dest, pkgName, ...subPath);
+    mkdirSync(join(dest, pkgName, ...subPath.slice(0, -1)), { recursive: true });
+    if (existsSync(srcFile)) await Bun.write(destFile, Bun.file(srcFile));
   }
 }
 
@@ -245,39 +176,32 @@ async function bundleJavaScript(buildEntry, routerPath, outDir, envVars, buildDi
   process.chdir(buildDir);
 
   try {
-    const hasRouter  = existsSync(routerPath);
     const entrypoints = [buildEntry];
-    if (hasRouter) entrypoints.push(routerPath);
+    if (existsSync(routerPath)) entrypoints.push(routerPath);
 
-    // Generate import map for production
     const importMap = await generateProductionImportMap(root, config);
-    
-    // Save import map to dist
-    const importMapPath = join(outDir, 'import-map.json');
-    await Bun.write(importMapPath, JSON.stringify({ imports: importMap }, null, 2));
-    logger.success(`✅ Generated import map: import-map.json`);
-
-    // Copy node_modules to dist
+    await Bun.write(join(outDir, 'import-map.json'), JSON.stringify({ imports: importMap }, null, 2));
     await copyNodeModulesToDist(root, outDir, importMap);
-
-    // ── Node module support ───────────────────────────────────────────────
-    // Only react packages stay external (loaded via importmap)
-    const alwaysExternal = ['react', 'react-dom', 'react-dom/client'];
 
     const result = await Bun.build({
       entrypoints,
-      outdir:   join(outDir, 'assets'),
-      target:   'browser',
-      minify:   true,
-      splitting: true,
+      outdir:  join(outDir, 'assets'),
+      target:  'browser',
+      format:  'esm',
+      minify: {
+        whitespace:  true,
+        syntax:      true,
+        identifiers: true,
+      },
+      splitting:  true,
       sourcemap: 'external',
-      metafile:  true,
+      metafile:   true,
       naming: {
         entry: 'js/[name]-[hash].js',
         chunk: 'js/chunks/[name]-[hash].js',
         asset: 'assets/[name]-[hash].[ext]',
       },
-      external: alwaysExternal,
+      external: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime'],
       define: {
         'process.env.NODE_ENV': '"production"',
         ...Object.fromEntries(
@@ -287,49 +211,23 @@ async function bundleJavaScript(buildEntry, routerPath, outDir, envVars, buildDi
     });
 
     if (!result.success) {
-      const errors = result.logs?.map(l => l.message).join('\n') || 'Unknown error';
-      throw new Error(`JavaScript bundling failed:\n${errors}`);
+      throw new Error(`Bundle failed\n${result.logs?.map(l => l.message).join('\n') || 'Unknown error'}`);
     }
 
-    logger.success(`✅ Bundled ${result.outputs.length} files`);
-    
-    // Save metafile for analysis
     if (result.metafile) {
-      const metafilePath = join(outDir, 'metafile.json');
-      await Bun.write(metafilePath, JSON.stringify(result.metafile, null, 2));
-      logger.success(`✅ Generated bundle metadata: metafile.json`);
+      await Bun.write(join(outDir, 'metafile.json'), JSON.stringify(result.metafile, null, 2));
     }
-    
+
     return result;
 
-  } catch (error) {
-    logger.error(`Bundle failed: ${error.message}`);
-    throw error;
   } finally {
     process.chdir(originalCwd);
   }
 }
 
-function showBuildSummary(routes, serverIslands, clientRoutes, analyzedRoutes, durationMs) {
-  logger.success(`✨ Build complete in ${durationMs.toFixed(1)}ms`);
-  logger.bigLog('BUILD SUMMARY', { color: 'green' });
-  logger.info(`📄 Total routes:             ${routes.length}`);
-  logger.info(`🏝️  Server Islands (SSG):    ${serverIslands.length}`);
-  logger.info(`⚡ Interactive (hydrated):   ${analyzedRoutes.interactive.length}`);
-  logger.info(`🧊 Static (no JS):           ${analyzedRoutes.static.length}`);
-  logger.info(`🗺️  Sitemap:                 dist/sitemap.xml`);
-  logger.info(`🤖 robots.txt:               dist/robots.txt`);
-  logger.info(`📊 Bundle report:            dist/bundle-report.html`);
-  logger.info(`📦 Import map:               dist/import-map.json`);
-  logger.info(`📁 Node modules:             dist/assets/node_modules/`);
-  logger.bigLog('READY TO DEPLOY 🚀', { color: 'green' });
-}
-
-// Update the main export to handle the process properly
 export async function build(options = {}) {
   try {
     await buildProduction(options);
-    // ✅ Let the process exit naturally
     process.exit(0);
   } catch (error) {
     console.error(error);
