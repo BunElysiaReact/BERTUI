@@ -97,7 +97,8 @@ export async function buildProduction(options = {}) {
 
     if (existsSync(buildDir)) rmSync(buildDir, { recursive: true, force: true });
 
-    await analyzeBuild(outDir, { outputFile: join(outDir, 'bundle-report.html') });
+    // Fire-and-forget — don't let the report generator block process exit
+    analyzeBuild(outDir, { outputFile: join(outDir, 'bundle-report.html') }).catch(() => {});
 
     // ── Summary ──────────────────────────────────────────────────────────────
     logger.printSummary({
@@ -228,9 +229,9 @@ async function bundleJavaScript(buildEntry, routerPath, outDir, envVars, buildDi
 export async function build(options = {}) {
   try {
     await buildProduction(options);
-    process.exit(0);
   } catch (error) {
     console.error(error);
     process.exit(1);
   }
+  process.exit(0);
 }
