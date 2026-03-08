@@ -1,4 +1,4 @@
-// bertui/index.js - v1.2.0 with all features
+// bertui/index.js - v1.3.0
 
 // Compiler
 export { compileProject, compileFile } from './src/client/compiler.js';
@@ -33,7 +33,7 @@ export { default as logger } from './src/logger/logger.js';
 // CLI
 export { program } from './src/cli.js';
 
-// ✅ NEW: Middleware system
+// ✅ Middleware system
 export {
   MiddlewareManager,
   loadMiddleware,
@@ -41,7 +41,7 @@ export {
   MiddlewareContext,
 } from './src/middleware/index.js';
 
-// ✅ NEW: Layout system
+// ✅ Layout system
 export {
   discoverLayouts,
   compileLayouts,
@@ -50,7 +50,7 @@ export {
   injectLayoutsIntoRouter,
 } from './src/layouts/index.js';
 
-// ✅ NEW: Loading states
+// ✅ Loading states
 export {
   discoverLoadingComponents,
   compileLoadingComponents,
@@ -59,7 +59,7 @@ export {
   DEFAULT_LOADING_HTML,
 } from './src/loading/index.js';
 
-// ✅ NEW: Partial hydration
+// ✅ Partial hydration
 export {
   needsHydration,
   getInteractiveFeatures,
@@ -68,10 +68,10 @@ export {
   logHydrationReport,
 } from './src/hydration/index.js';
 
-// ✅ NEW: Bundle analyzer
+// ✅ Bundle analyzer
 export { analyzeBuild } from './src/analyzer/index.js';
 
-// ✅ NEW: CLI scaffolder
+// ✅ CLI scaffolder
 export { scaffold, parseCreateArgs } from './src/scaffolder/index.js';
 
 // Server
@@ -91,5 +91,13 @@ export {
   validateServerIsland,
 } from './src/server-islands/index.js';
 
+// ✅ NEW: importhow — alias/import resolution system
+// Bunny and external tools can use these to apply the same alias logic
+export {
+  buildAliasMap,
+  rewriteAliasImports,
+  getAliasDirs,
+} from './src/utils/importhow.js';
+
 // Version
-export const version = '1.2.0';
+export const version = '1.2.2';

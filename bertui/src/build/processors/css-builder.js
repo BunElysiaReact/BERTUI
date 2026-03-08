@@ -1,4 +1,4 @@
-// bertui/src/build/processors/css-builder.js - WITH SCSS + CACHING
+// bertui/src/build/processors/css-builder.js - WITH SCSS + CACHING + CSS MODULES
 import { join } from 'path';
 import { existsSync, readdirSync, mkdirSync } from 'fs';
 import logger from '../../logger/logger.js';
@@ -9,13 +9,14 @@ export async function buildAllCSS(root, outDir) {
   const startTime = process.hrtime.bigint();
   
   const srcStylesDir = join(root, 'src', 'styles');
+  // CSS modules scoped CSS is staged here by file-transpiler.js
+  const modulesStagingDir = join(root, '.bertuibuild', 'styles-staged');
   const stylesOutDir = join(outDir, 'styles');
   
   mkdirSync(stylesOutDir, { recursive: true });
   
-  // Check cache for entire CSS build
   const cacheKey = `css-build:${root}:${Date.now()}`;
-  const cached = globalCache.get(cacheKey, { ttl: 1000 }); // 1 second cache
+  const cached = globalCache.get(cacheKey, { ttl: 1000 });
   
   if (cached) {
     logger.info(`⚡ Using cached CSS (${cached.files} files)`);
@@ -23,43 +24,50 @@ export async function buildAllCSS(root, outDir) {
     return;
   }
   
-  if (!existsSync(srcStylesDir)) {
-    await Bun.write(join(stylesOutDir, 'bertui.min.css'), '/* No custom styles */');
-    logger.info('No styles directory found, created empty CSS');
-    return;
+  let combinedCSS = '';
+  let fileCount = 0;
+
+  // 1. Process src/styles/ (plain CSS + SCSS)
+  if (existsSync(srcStylesDir)) {
+    await processSCSSDirectory(srcStylesDir, root);
+    const cssFiles = readdirSync(srcStylesDir).filter(f => f.endsWith('.css') && !f.endsWith('.module.css'));
+
+    logger.info(`Processing ${cssFiles.length} CSS file(s)...`);
+
+    for (const cssFile of cssFiles) {
+      const srcPath = join(srcStylesDir, cssFile);
+      const fileBuffer = await globalCache.getFile(srcPath, { logSpeed: true });
+      if (fileBuffer) {
+        const content = fileBuffer.toString('utf-8');
+        combinedCSS += `/* ${cssFile} */\n${content}\n\n`;
+        fileCount++;
+      }
+    }
+  } else {
+    logger.info('No styles directory found');
   }
-  
-  // Process SCSS files first
-  await processSCSSDirectory(srcStylesDir, root);
-  
-  // Read all CSS files (including compiled SCSS)
-  const cssFiles = readdirSync(srcStylesDir).filter(f => f.endsWith('.css'));
-  
-  if (cssFiles.length === 0) {
+
+  // 2. Include scoped CSS from CSS modules (staged by file-transpiler.js)
+  if (existsSync(modulesStagingDir)) {
+    const moduleFiles = readdirSync(modulesStagingDir).filter(f => f.endsWith('.css'));
+    if (moduleFiles.length > 0) {
+      logger.info(`Including ${moduleFiles.length} CSS module(s)...`);
+      for (const cssFile of moduleFiles) {
+        const srcPath = join(modulesStagingDir, cssFile);
+        const content = await Bun.file(srcPath).text();
+        combinedCSS += `/* module: ${cssFile} */\n${content}\n\n`;
+        fileCount++;
+      }
+    }
+  }
+
+  if (!combinedCSS.trim()) {
     await Bun.write(join(stylesOutDir, 'bertui.min.css'), '/* No CSS */');
     return;
   }
-  
-  logger.info(`Processing ${cssFiles.length} CSS file(s)...`);
-  
-  let combinedCSS = '';
-  const fileContents = [];
-  
-  for (const cssFile of cssFiles) {
-    const srcPath = join(srcStylesDir, cssFile);
-    
-    // Use file cache
-    const fileBuffer = await globalCache.getFile(srcPath, { logSpeed: true });
-    if (fileBuffer) {
-      const content = fileBuffer.toString('utf-8');
-      fileContents.push({ filename: cssFile, content });
-      combinedCSS += `/* ${cssFile} */\n${content}\n\n`;
-    }
-  }
-  
+
   const combinedPath = join(stylesOutDir, 'bertui.min.css');
   
-  // Minify with caching
   const minifyCacheKey = `minify:${Buffer.from(combinedCSS).length}:${combinedCSS.substring(0, 100)}`;
   let minified = globalCache.get(minifyCacheKey);
   
@@ -68,7 +76,7 @@ export async function buildAllCSS(root, outDir) {
       filename: 'bertui.min.css',
       sourceMap: false
     });
-    globalCache.set(minifyCacheKey, minified, { ttl: 60000 }); // Cache for 60 seconds
+    globalCache.set(minifyCacheKey, minified, { ttl: 60000 });
   }
   
   await Bun.write(combinedPath, minified);
@@ -78,23 +86,20 @@ export async function buildAllCSS(root, outDir) {
   const reduction = ((1 - minifiedSize / originalSize) * 100).toFixed(1);
   
   const endTime = process.hrtime.bigint();
-  const duration = Number(endTime - startTime) / 1000; // Microseconds
+  const duration = Number(endTime - startTime) / 1000;
   
   logger.success(`CSS optimized: ${(originalSize/1024).toFixed(2)}KB → ${(minifiedSize/1024).toFixed(2)}KB (-${reduction}%)`);
   logger.info(`⚡ Processing time: ${duration.toFixed(3)}µs`);
   
-  // Cache the final result
   globalCache.set(cacheKey, {
-    files: cssFiles.length,
+    files: fileCount,
     content: minified,
     size: minifiedSize
   }, { ttl: 5000 });
 }
 
-// NEW: Process SCSS directory
 async function processSCSSDirectory(stylesDir, root) {
   try {
-    // Check if sass is installed
     const sass = await import('sass').catch(() => null);
     if (!sass) return;
     
@@ -109,7 +114,6 @@ async function processSCSSDirectory(stylesDir, root) {
       const srcPath = join(stylesDir, file);
       const cssPath = join(stylesDir, file.replace(/\.(scss|sass)$/, '.css'));
       
-      // Check cache
       const fileBuffer = await globalCache.getFile(srcPath);
       const cacheKey = `scss:${file}:${Buffer.from(fileBuffer).length}`;
       const cached = globalCache.get(cacheKey);

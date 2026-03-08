@@ -1,8 +1,17 @@
-// bertui/src/config/defaultConfig.js - CLEANED
+// bertui/src/config/defaultConfig.js
 export const defaultConfig = {
   siteName: "BertUI App",
   baseUrl: "http://localhost:3000",
-  
+
+  // importhow: alias → relative path from project root
+  // Example:
+  //   importhow: {
+  //     amani: '../../components',
+  //     ui:    '../../components/ui',
+  //     text:  '../../utils/text',
+  //   }
+  importhow: {},
+
   meta: {
     title: "BertUI - Lightning Fast React",
     description: "Build lightning-fast React applications with file-based routing powered by Bun",
@@ -14,13 +23,13 @@ export const defaultConfig = {
     ogDescription: "Build lightning-fast React apps with zero config",
     ogImage: "/og-image.png"
   },
-  
+
   appShell: {
     loading: true,
     loadingText: "Loading...",
     backgroundColor: "#ffffff"
   },
-  
+
   robots: {
     disallow: [],
     crawlDelay: null

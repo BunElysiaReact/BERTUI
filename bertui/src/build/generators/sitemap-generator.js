@@ -1,6 +1,6 @@
 // bertui/src/build/sitemap-generator.js - SIMPLIFIED
 import { join } from 'path';
-import logger from '../../logger/logger';
+import logger from '../../logger/logger.js';
 
 function calculatePriority(route) {
   if (route === '/') return 1.0;

@@ -20,13 +20,14 @@ export async function discoverRoutes(pagesDir) {
         
         if (['.jsx', '.tsx', '.js', '.ts'].includes(ext)) {
           const fileName = entry.name.replace(ext, '');
+
+          // Only loading is reserved - index is a valid route (becomes /)
+          if (fileName === 'loading') continue;
+
           let route = '/' + relativePath.replace(/\\/g, '/').replace(ext, '');
-          
-          const RESERVED = ['index', 'loading'];
           if (fileName === 'index') {
             route = route.replace('/index', '') || '/';
           }
-          if (RESERVED.includes(fileName)) continue;
           
           const isDynamic = fileName.includes('[') && fileName.includes(']');
           

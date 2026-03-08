@@ -1,9 +1,9 @@
 // bertui/src/server/dev-server-utils.js - WITH CACHE IMPORT
 import { join, extname } from 'path';
-import { existsSync, readdirSync, watch } from 'fs';
+import { existsSync, readdirSync, watch, statSync } from 'fs';
 import logger from '../logger/logger.js';
 import { compileProject } from '../client/compiler.js';
-import { globalCache } from '../utils/cache.js'; // ✅ Now this works!
+import { globalCache } from '../utils/cache.js';
 
 // Image content type mapping
 export function getImageContentType(ext) {
@@ -52,7 +52,7 @@ export async function serveHTML(root, hasRouter, config, port) {
   const cacheKey = `html:${root}:${port}`;
   
   // Try cache first
-  const cached = globalCache.get(cacheKey, { ttl: 1000 }); // 1 second cache during dev
+  const cached = globalCache.get(cacheKey, { ttl: 1000 });
   if (cached) {
     logger.debug('⚡ Serving cached HTML');
     return cached;
@@ -79,55 +79,71 @@ export async function serveHTML(root, hasRouter, config, port) {
     bertuiAnimateStylesheet = '  <link rel="stylesheet" href="/bertui-animate.css">';
   }
   
-  // Build import map
+  // Build import map - CORE PACKAGES
   const importMap = {
     "react": "https://esm.sh/react@18.2.0",
     "react-dom": "https://esm.sh/react-dom@18.2.0",
     "react-dom/client": "https://esm.sh/react-dom@18.2.0/client"
   };
   
-  // Auto-detect bertui-* JavaScript packages
+  // Auto-detect node_modules packages - ONLY TOP LEVEL
   const nodeModulesDir = join(root, 'node_modules');
   
   if (existsSync(nodeModulesDir)) {
     try {
+      // Read top-level directories only
       const packages = readdirSync(nodeModulesDir);
       
       for (const pkg of packages) {
-        if (!pkg.startsWith('bertui-')) continue;
+        // Skip system directories and already handled packages
+        if (pkg.startsWith('.') || pkg.startsWith('_')) continue;
+        if (pkg === 'react' || pkg === 'react-dom') continue;
+        if (pkg.includes('@')) continue; // Skip scoped packages for now
         
         const pkgDir = join(nodeModulesDir, pkg);
-        const pkgJsonPath = join(pkgDir, 'package.json');
         
+        // Verify it's a directory
+        try {
+          const stat = statSync(pkgDir);
+          if (!stat.isDirectory()) continue;
+        } catch {
+          continue;
+        }
+        
+        const pkgJsonPath = join(pkgDir, 'package.json');
         if (!existsSync(pkgJsonPath)) continue;
         
         try {
           const pkgJsonContent = await Bun.file(pkgJsonPath).text();
           const pkgJson = JSON.parse(pkgJsonContent);
           
-          let mainFile = null;
+          // Simple approach - look for common entry points
+          const possibleEntryPoints = [
+            pkgJson.module,
+            pkgJson.main,
+            'index.js',
+            'dist/index.js',
+            'lib/index.js',
+            'src/index.js'
+          ].filter(Boolean);
           
-          if (pkgJson.exports) {
-            const rootExport = pkgJson.exports['.'];
-            if (typeof rootExport === 'string') {
-              mainFile = rootExport;
-            } else if (typeof rootExport === 'object') {
-              mainFile = rootExport.browser || rootExport.default || rootExport.import;
+          let foundPath = null;
+          for (const entry of possibleEntryPoints) {
+            const fullPath = join(pkgDir, entry);
+            if (existsSync(fullPath)) {
+              foundPath = `/node_modules/${pkg}/${entry}`;
+              break;
             }
           }
           
-          if (!mainFile) {
-            mainFile = pkgJson.main || 'index.js';
-          }
-          
-          const fullPath = join(pkgDir, mainFile);
-          if (existsSync(fullPath)) {
-            importMap[pkg] = `/node_modules/${pkg}/${mainFile}`;
-            logger.debug(`✅ ${pkg} available`);
+          if (foundPath) {
+            importMap[pkg] = foundPath;
+            logger.debug(`📦 Mapped ${pkg} → ${foundPath}`);
           }
           
         } catch (error) {
-          logger.warn(`⚠️  Failed to parse ${pkg}/package.json: ${error.message}`);
+          // Silently skip packages we can't parse
+          continue;
         }
       }
     } catch (error) {
@@ -186,6 +202,7 @@ ${bertuiAnimateStylesheet}
       
       if (data.type === 'reload') {
         console.log('%c🔄 Reloading...', 'color: #f59e0b; font-weight: bold');
+        if (window.__BERTUI_HIDE_ERROR__) window.__BERTUI_HIDE_ERROR__();
         window.location.reload();
       }
       
@@ -195,6 +212,20 @@ ${bertuiAnimateStylesheet}
       
       if (data.type === 'compiled') {
         console.log('%c✅ Compilation complete', 'color: #10b981');
+        if (window.__BERTUI_HIDE_ERROR__) window.__BERTUI_HIDE_ERROR__();
+      }
+
+      if (data.type === 'compilation-error') {
+        if (window.__BERTUI_SHOW_ERROR__) {
+          window.__BERTUI_SHOW_ERROR__({
+            type: 'Compilation Error',
+            message: data.message,
+            stack: data.stack,
+            file: data.file,
+            line: data.line,
+            column: data.column,
+          });
+        }
       }
     };
     
@@ -207,6 +238,7 @@ ${bertuiAnimateStylesheet}
     };
   </script>
   
+  <script src="/error-overlay.js"></script>
   <script type="module" src="/compiled/main.js"></script>
 </body>
 </html>`;
@@ -217,7 +249,7 @@ ${bertuiAnimateStylesheet}
   return html;
 }
 
-// File watcher setup (unchanged)
+// File watcher setup
 export function setupFileWatcher(root, compiledDir, clients, onRecompile) {
   const srcDir = join(root, 'src');
   const configPath = join(root, 'bertui.config.js');
@@ -275,6 +307,14 @@ export function setupFileWatcher(root, compiledDir, clients, onRecompile) {
         
       } catch (error) {
         logger.error(`Recompilation failed: ${error.message}`);
+        notifyClients({
+          type: 'compilation-error',
+          message: error.message,
+          stack: error.stack || null,
+          file: error.file || null,
+          line: error.line || null,
+          column: error.column || null,
+        });
       } finally {
         isRecompiling = false;
       }

@@ -99,6 +99,17 @@ export async function createDevHandler(options = {}) {
       }
     }
 
+    // Error overlay script
+    if (url.pathname === '/error-overlay.js') {
+      const overlayPath = join(root, 'node_modules/bertui/error-overlay.js');
+      const file = Bun.file(overlayPath);
+      if (await file.exists()) {
+        return new Response(file, {
+          headers: { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'no-store' },
+        });
+      }
+    }
+
     // bertui-animate CSS
     if (url.pathname === '/bertui-animate.css') {
       const animPath = join(root, 'node_modules/bertui-animate/dist/bertui-animate.min.css');
