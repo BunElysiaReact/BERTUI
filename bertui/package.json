@@ -8,31 +8,49 @@
   "bin": {
     "bertui": "./bin/bertui.js"
   },
-  "exports": {
-    ".": {
-      "types": "./types/index.d.ts",
-      "import": "./index.js",
-      "default": "./index.js"
-    },
-    "./hmr": {
-      "import": "./src/client/hmr-runtime.js"
-    },
-    "./image-optimizer": {
-      "import": "./src/image-optimizer/index.js"
-    },
-    "./router": {
-      "types": "./types/router.d.ts",
-      "import": "./src/router/index.js"
-    },
-    "./config": {
-      "types": "./types/config.d.ts",
-      "import": "./src/config/index.js"
-    },
-    "./logger": {
-      "import": "./src/logger/logger.js"
-    },
-    "./styles": "./src/styles/bertui.css"
+"exports": {
+  ".": {
+    "types": "./types/index.d.ts",
+    "import": "./index.js",
+    "default": "./index.js"
   },
+  "./hmr": {
+    "import": "./src/client/hmr-runtime.js"
+  },
+  "./image-optimizer": {
+    "import": "./src/image-optimizer/index.js"
+  },
+  "./router": {
+    "types": "./types/router.d.ts",
+    "import": "./src/router/index.js"
+  },
+  "./config": {
+    "types": "./types/config.d.ts",
+    "import": "./src/config/index.js"
+  },
+  "./logger": {
+    "import": "./src/logger/logger.js"
+  },
+  "./styles": "./src/styles/bertui.css",
+  "./compiler": {
+    "import": "./src/client/compiler.js"
+  },
+  "./layouts": {
+    "import": "./src/layouts/index.js"
+  },
+  "./loading": {
+    "import": "./src/loading/index.js"
+  },
+  "./hydration": {
+    "import": "./src/hydration/index.js"
+  },
+  "./dev": {
+    "import": "./src/server/dev-server-utils.js"
+  },
+  "./build": {
+    "import": "./src/build.js"
+  }
+},
   "files": [
     "bin",
     "src",
