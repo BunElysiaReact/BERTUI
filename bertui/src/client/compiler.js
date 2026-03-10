@@ -302,6 +302,7 @@ async function compileDirectory(srcDir, outDir, root, envVars, aliasMap) {
 
     if (stat.isDirectory()) {
       if (file === 'templates') { logger.debug('⏭️  Skipping src/templates/'); continue; }
+      if (file === 'api') { logger.debug('⏭️  Skipping src/api/'); continue; }
       const subOutDir = join(outDir, file);
       mkdirSync(subOutDir, { recursive: true });
       const subStats = await compileDirectory(srcPath, subOutDir, root, envVars, aliasMap);

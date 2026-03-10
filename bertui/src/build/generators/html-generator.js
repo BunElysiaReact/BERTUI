@@ -306,6 +306,7 @@ ${bertuiAnimateCSS}
     "imports": {
       "react": "https://esm.sh/react@18.2.0",
       "react-dom": "https://esm.sh/react-dom@18.2.0",
+      "@bunnyx/api": "/bunnyx-api/api-client.js",
       "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
       "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime"${bertuiIconsImport}
     }

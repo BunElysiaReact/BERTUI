@@ -49,6 +49,7 @@ async function _compileDir(srcDir, buildDir, root, envVars, aliasMap) {
     const stat    = statSync(srcPath);
 
     if (stat.isDirectory()) {
+      if (file === 'api') { logger.debug('⏭️  Skipping api/'); continue; }
       const subBuildDir = join(buildDir, file);
       mkdirSync(subBuildDir, { recursive: true });
       await _compileDir(srcPath, subBuildDir, root, envVars, aliasMap);

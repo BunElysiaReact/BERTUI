@@ -127,6 +127,7 @@ async function generateProductionImportMap(root, config) {
     'react-dom':         'https://esm.sh/react-dom@18.2.0',
     'react-dom/client':  'https://esm.sh/react-dom@18.2.0/client',
     'react/jsx-runtime': 'https://esm.sh/react@18.2.0/jsx-runtime',
+    '@bunnyx/api':       '/bunnyx-api/api-client.js',
   };
 
   const nodeModulesDir = join(root, 'node_modules');
@@ -184,6 +185,13 @@ async function bundleJavaScript(buildEntry, routerPath, outDir, envVars, buildDi
     await Bun.write(join(outDir, 'import-map.json'), JSON.stringify({ imports: importMap }, null, 2));
     await copyNodeModulesToDist(root, outDir, importMap);
 
+    // Copy @bunnyx/api client to dist so the importmap entry resolves
+    const bunnyxSrc = join(root, 'bunnyx-api', 'api-client.js');
+    if (existsSync(bunnyxSrc)) {
+      mkdirSync(join(outDir, 'bunnyx-api'), { recursive: true });
+      await Bun.write(join(outDir, 'bunnyx-api', 'api-client.js'), Bun.file(bunnyxSrc));
+    }
+
     const result = await Bun.build({
       entrypoints,
       outdir:  join(outDir, 'assets'),
@@ -202,7 +210,7 @@ async function bundleJavaScript(buildEntry, routerPath, outDir, envVars, buildDi
         chunk: 'js/chunks/[name]-[hash].js',
         asset: 'assets/[name]-[hash].[ext]',
       },
-      external: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime'],
+      external: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime', '@bunnyx/api'],
       define: {
         'process.env.NODE_ENV': '"production"',
         ...Object.fromEntries(
