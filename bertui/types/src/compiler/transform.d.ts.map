@@ -1,0 +1,1 @@
+{"version":3,"file":"transform.d.ts","sourceRoot":"","sources":["../../../src/compiler/transform.js"],"names":[],"mappings":"AAGA;;;;;;;;GAQG;AACH,yCAPW,MAAM,YAEd;IAAwB,MAAM,EAAtB,MAAM;IACU,GAAG,EAAnB,MAAM;IACW,cAAc,EAA/B,OAAO;CACf,GAAU,OAAO,CAAC,MAAM,CAAC,CAqD3B;AAED;;;GAGG;AACH,qEAkCC;AAED;;GAEG;AACH,4CAOC;AAED;;GAEG;AACH,iDAIC;AAED;;GAEG;AACH,oDAKC;AAED;;GAEG;AACH,mDASC"}

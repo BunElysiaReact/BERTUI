@@ -17,7 +17,6 @@ export async function generateProductionHTML(root, outDir, buildResult, routes, 
   const bundlePath = relative(outDir, mainBundle.path).replace(/\\/g, '/');
   const defaultMeta = config.meta || {};
   
-  // ✅ Copy bertui-icons AND bertui-animate to dist/
   const bertuiPackages = await copyBertuiPackagesToProduction(root, outDir);
   
   logger.info(`📄 Generating HTML for ${routes.length} routes...`);
@@ -36,12 +35,12 @@ export async function generateProductionHTML(root, outDir, buildResult, routes, 
   logger.success(`✅ HTML generation complete for ${routes.length} routes`);
 }
 
-// ✅ UPDATED: Copy ALL bertui-* packages to dist/
 async function copyBertuiPackagesToProduction(root, outDir) {
   const nodeModulesDir = join(root, 'node_modules');
   const packages = {
     bertuiIcons: false,
-    bertuiAnimate: false
+    bertuiAnimate: false,
+    elysiaEden: false
   };
   
   if (!existsSync(nodeModulesDir)) {
@@ -63,14 +62,13 @@ async function copyBertuiPackagesToProduction(root, outDir) {
     }
   }
   
-  // ✅ NEW: Copy ONLY bertui-animate CSS files (not the whole package)
+  // Copy bertui-animate CSS files
   const bertuiAnimateSource = join(nodeModulesDir, 'bertui-animate', 'dist');
   if (existsSync(bertuiAnimateSource)) {
     try {
       const bertuiAnimateDest = join(outDir, 'css');
       mkdirSync(bertuiAnimateDest, { recursive: true });
       
-      // Copy minified CSS
       const minCSSPath = join(bertuiAnimateSource, 'bertui-animate.min.css');
       if (existsSync(minCSSPath)) {
         cpSync(minCSSPath, join(bertuiAnimateDest, 'bertui-animate.min.css'));
@@ -79,6 +77,20 @@ async function copyBertuiPackagesToProduction(root, outDir) {
       }
     } catch (error) {
       logger.error(`Failed to copy bertui-animate: ${error.message}`);
+    }
+  }
+
+  // Copy @elysiajs/eden
+  const elysiaEdenSource = join(nodeModulesDir, '@elysiajs', 'eden');
+  if (existsSync(elysiaEdenSource)) {
+    try {
+      const elysiaEdenDest = join(outDir, 'node_modules', '@elysiajs', 'eden');
+      mkdirSync(join(outDir, 'node_modules', '@elysiajs'), { recursive: true });
+      cpSync(elysiaEdenSource, elysiaEdenDest, { recursive: true });
+      logger.success('✅ Copied @elysiajs/eden to dist/node_modules/');
+      packages.elysiaEden = true;
+    } catch (error) {
+      logger.error(`Failed to copy @elysiajs/eden: ${error.message}`);
     }
   }
   
@@ -261,7 +273,6 @@ async function extractStaticHTMLFromComponent(sourceCode, filePath) {
   }
 }
 
-// ✅ UPDATED: Add bertui-animate CSS to production HTML
 function generateHTML(meta, route, bundlePath, staticHTML = '', isServerIsland = false, bertuiPackages = {}) {
   const rootContent = staticHTML 
     ? `<div id="root">${staticHTML}</div>` 
@@ -271,14 +282,17 @@ function generateHTML(meta, route, bundlePath, staticHTML = '', isServerIsland =
     ? '<!-- 🏝️ Server Island: Static content rendered at build time -->'
     : '<!-- ⚡ Client-only: Content rendered by JavaScript -->';
   
-  // ✅ Add bertui-icons to import map
   const bertuiIconsImport = bertuiPackages.bertuiIcons 
     ? ',\n      "bertui-icons": "/node_modules/bertui-icons/generated/index.js"'
     : '';
   
-  // ✅ Add bertui-animate CSS link
   const bertuiAnimateCSS = bertuiPackages.bertuiAnimate
     ? '  <link rel="stylesheet" href="/css/bertui-animate.min.css">'
+    : '';
+
+  // ✅ NEW: @elysiajs/eden local import map
+  const elysiaEdenImport = bertuiPackages.elysiaEden
+    ? ',\n      "@elysiajs/eden": "/node_modules/@elysiajs/eden/dist/index.mjs"'
     : '';
   
   return `<!DOCTYPE html>
@@ -308,7 +322,7 @@ ${bertuiAnimateCSS}
       "react-dom": "https://esm.sh/react-dom@18.2.0",
       "@bunnyx/api": "/bunnyx-api/api-client.js",
       "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-      "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime"${bertuiIconsImport}
+      "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime"${bertuiIconsImport}${elysiaEdenImport}
     }
   }
   </script>

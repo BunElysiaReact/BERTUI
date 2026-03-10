@@ -1,4 +1,4 @@
-// bertui/index.js - v1.3.0
+// bertui/index.js - v1.2.2
 
 // Compiler
 export { compileProject, compileFile } from './src/client/compiler.js';
