@@ -85,8 +85,10 @@ export async function buildProduction(options = {}) {
     logger.stepDone('Bundling JS', `${totalKB} KB · tree-shaken`);
 
     // ── Step 9: HTML ─────────────────────────────────────────────────────────
+    // NOTE: buildDir is passed so html-generator can import compiled .js files
+    // for renderToString. buildDir is deleted AFTER this step (line below summary).
     logger.step(9, TOTAL_STEPS, 'Generating HTML');
-    await generateProductionHTML(root, outDir, result, routes, serverIslands, config);
+    await generateProductionHTML(root, outDir, buildDir, result, routes, serverIslands, config);
     logger.stepDone('Generating HTML', `${routes.length} pages`);
 
     // ── Step 10: Sitemap + robots ────────────────────────────────────────────
@@ -95,6 +97,7 @@ export async function buildProduction(options = {}) {
     await generateRobots(config, outDir, routes);
     logger.stepDone('Sitemap & robots');
 
+    // Delete build dir AFTER HTML generation (html-generator needs compiled files)
     if (existsSync(buildDir)) rmSync(buildDir, { recursive: true, force: true });
 
     // Fire-and-forget — don't let the report generator block process exit

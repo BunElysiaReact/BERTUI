@@ -3,6 +3,7 @@
 
 import { createWriteStream } from 'fs';
 import { join } from 'path';
+import { mkdirSync, existsSync } from 'fs'; // ADD THIS IMPORT
 
 // ── ANSI helpers ─────────────────────────────────────────────────────────────
 const C = {
@@ -268,11 +269,20 @@ let _logStream = null;
 function _debugLog(level, msg) {
   if (!_logStream) {
     try {
+      // FIX: Ensure the .bertui directory exists before creating the log file
+      const logDir = join(process.cwd(), '.bertui');
+      if (!existsSync(logDir)) {
+        mkdirSync(logDir, { recursive: true });
+      }
+      
       _logStream = createWriteStream(
-        join(process.cwd(), '.bertui', 'dev.log'),
+        join(logDir, 'dev.log'),
         { flags: 'a' }
       );
-    } catch { return; }
+    } catch (err) {
+      // Silently fail if we can't create the log file
+      return;
+    }
   }
   const ts = new Date().toISOString().substring(11, 23);
   _logStream.write(`[${ts}] [${level}] ${msg}\n`);

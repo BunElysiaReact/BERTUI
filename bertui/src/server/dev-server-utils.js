@@ -72,14 +72,17 @@ export async function buildDevImportMap(root) {
 
   logger.info('🔄 Rebuilding dev import map (new packages detected)...');
 
+  // Initialize importMap with default mappings
   const importMap = {
-    'react':             'https://esm.sh/react@18.2.0',
-    'react-dom':         'https://esm.sh/react-dom@18.2.0',
-    'react-dom/client':  'https://esm.sh/react-dom@18.2.0/client',
-    'react/jsx-runtime': 'https://esm.sh/react@18.2.0/jsx-runtime',
-  '@bunnyx/api': '/bunnyx-api/api-client.js', 
-    '@elysiajs/eden':    '/node_modules/@elysiajs/eden/dist/index.mjs',
+    'react':                  'https://esm.sh/react@18.2.0',
+    'react-dom':              'https://esm.sh/react-dom@18.2.0',
+    'react-dom/client':       'https://esm.sh/react-dom@18.2.0/client',
+    'react/jsx-runtime':      'https://esm.sh/react@18.2.0/jsx-runtime',
+    'react/jsx-dev-runtime':  'https://esm.sh/react@18.2.0/jsx-dev-runtime',
+    '@bunnyx/api':            '/bunnyx-api/api-client.js',
+    '@elysiajs/eden':         '/node_modules/@elysiajs/eden/dist/index.mjs',
   };
+  
   const SKIP = new Set(['react', 'react-dom', '.bin', '.cache', '.package-lock.json', '.yarn']);
 
   if (existsSync(nodeModulesDir)) {
