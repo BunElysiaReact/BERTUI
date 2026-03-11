@@ -145,10 +145,10 @@ export async function createDevHandler(options = {}) {
       const filepath = join(root, 'node_modules', url.pathname.replace('/node_modules/', ''));
       const file = Bun.file(filepath);
       if (await file.exists()) {
-        const ext = extname(filepath).toLowerCase();
         const contentType = ext === '.css' ? 'text/css' :
-          ['.js', '.mjs'].includes(ext) ? 'application/javascript; charset=utf-8' :
-          getContentType(ext);
+         ['.js', '.mjs', '.jsx', '.ts', '.tsx'].includes(ext) ? 'application/javascript; charset=utf-8' :
+        ext === '.json' ? 'application/json' :
+         getContentType(ext);
         return new Response(file, {
           headers: { 'Content-Type': contentType, 'Cache-Control': 'no-cache' },
         });
