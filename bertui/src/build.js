@@ -85,8 +85,6 @@ export async function buildProduction(options = {}) {
     logger.stepDone('Bundling JS', `${totalKB} KB · tree-shaken`);
 
     // ── Step 9: HTML ─────────────────────────────────────────────────────────
-    // NOTE: buildDir is passed so html-generator can import compiled .js files
-    // for renderToString. buildDir is deleted AFTER this step (line below summary).
     logger.step(9, TOTAL_STEPS, 'Generating HTML');
     await generateProductionHTML(root, outDir, buildDir, result, routes, serverIslands, config);
     logger.stepDone('Generating HTML', `${routes.length} pages`);
@@ -97,11 +95,15 @@ export async function buildProduction(options = {}) {
     await generateRobots(config, outDir, routes);
     logger.stepDone('Sitemap & robots');
 
-    // Delete build dir AFTER HTML generation (html-generator needs compiled files)
+    // Delete build dir AFTER HTML generation
     if (existsSync(buildDir)) rmSync(buildDir, { recursive: true, force: true });
 
-    // Fire-and-forget — don't let the report generator block process exit
-    analyzeBuild(outDir, { outputFile: join(outDir, 'bundle-report.html') }).catch(() => {});
+    // Generate bundle report
+    try {
+      await analyzeBuild(outDir, { outputFile: join(outDir, 'bundle-report.html') });
+    } catch (reportErr) {
+      logger.debug(`Bundle report generation skipped: ${reportErr.message}`);
+    }
 
     // ── Summary ──────────────────────────────────────────────────────────────
     logger.printSummary({
@@ -112,6 +114,9 @@ export async function buildProduction(options = {}) {
       jsSize:        `${totalKB} KB`,
       outDir:        'dist/',
     });
+
+    // Clean up logger resources
+    logger.cleanup();
 
     return { success: true };
 
@@ -195,11 +200,27 @@ async function bundleJavaScript(buildEntry, routerPath, outDir, envVars, buildDi
       await Bun.write(join(outDir, 'bunnyx-api', 'api-client.js'), Bun.file(bunnyxSrc));
     }
 
+    // CSS Module Plugin for Bun.build
+    const cssModulePlugin = {
+      name: 'css-modules',
+      setup(build) {
+        build.onLoad({ filter: /\.module\.css$/ }, () => ({
+          contents: 'export default new Proxy({}, { get: (_, k) => k });',
+          loader: 'js',
+        }));
+        build.onLoad({ filter: /\.css$/ }, () => ({
+          contents: '',
+          loader: 'js',
+        }));
+      },
+    };
+
     const result = await Bun.build({
       entrypoints,
       outdir:  join(outDir, 'assets'),
       target:  'browser',
       format:  'esm',
+      plugins: [cssModulePlugin],
       minify: {
         whitespace:  true,
         syntax:      true,
@@ -240,9 +261,9 @@ async function bundleJavaScript(buildEntry, routerPath, outDir, envVars, buildDi
 export async function build(options = {}) {
   try {
     await buildProduction(options);
+    process.exit(0);
   } catch (error) {
     console.error(error);
     process.exit(1);
   }
-  process.exit(0);
 }

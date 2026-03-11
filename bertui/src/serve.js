@@ -42,10 +42,8 @@ export async function startPreviewServer(options = {}) {
     process.exit(1);
   }
   
-  logger.bigLog(`🚀 PREVIEW SERVER`, { color: 'green' });
-  logger.info(`📁 Serving: ${publicPath}`);
-  logger.info(`🌐 URL: http://localhost:${port}`);
-  logger.info(`⚡ Press Ctrl+C to stop`);
+console.log(`\n  🚀 Preview running at http://localhost:${port}`);
+console.log(`  Press Ctrl+C to stop\n`);
   
   // Track connections for graceful shutdown
   const connections = new Set();

@@ -186,12 +186,14 @@ function _usesJSX(code) {
          /<[A-Z]/.test(code);
 }
 
+// AFTER
 function _removeCSSImports(code) {
+  // Remove ALL css imports including module css
+  code = code.replace(/import\s+\w+\s+from\s+['"][^'"]*\.module\.css['"];?\s*/g, '');
   code = code.replace(/import\s+['"][^'"]*\.css['"];?\s*/g, '');
   code = code.replace(/import\s+['"]bertui\/styles['"]\s*;?\s*/g, '');
   return code;
 }
-
 function _fixBuildImports(code, srcPath, outPath, root) {
   const buildDir    = join(root, '.bertuibuild');
   const routerPath  = join(buildDir, 'router.js');

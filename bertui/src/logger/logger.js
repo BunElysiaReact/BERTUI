@@ -3,7 +3,7 @@
 
 import { createWriteStream } from 'fs';
 import { join } from 'path';
-import { mkdirSync, existsSync } from 'fs'; // ADD THIS IMPORT
+import { mkdirSync, existsSync } from 'fs';
 
 // ── ANSI helpers ─────────────────────────────────────────────────────────────
 const C = {
@@ -122,12 +122,10 @@ export function fileProgress(current, total, filename) {
 
 // ── Simple log levels (used internally, suppressed in compact mode) ───────────
 export function info(msg) {
-  // In compact mode swallow routine info — only pass through to debug log
   _debugLog('INFO', msg);
 }
 
 export function success(msg) {
-  // Swallow — stepDone() is the visual replacement
   _debugLog('SUCCESS', msg);
 }
 
@@ -186,6 +184,9 @@ export function bigLog(title, opts = {}) {
 // ── Build/Dev summary ─────────────────────────────────────────────────────────
 export function printSummary(stats = {}) {
   _stopSpinner();
+  // Close the log stream before printing summary
+  _closeLogStream();
+  
   process.stdout.write('\n');
 
   const dur = _startTime ? `${((Date.now() - _startTime) / 1000).toFixed(2)}s` : '';
@@ -269,7 +270,6 @@ let _logStream = null;
 function _debugLog(level, msg) {
   if (!_logStream) {
     try {
-      // FIX: Ensure the .bertui directory exists before creating the log file
       const logDir = join(process.cwd(), '.bertui');
       if (!existsSync(logDir)) {
         mkdirSync(logDir, { recursive: true });
@@ -280,7 +280,6 @@ function _debugLog(level, msg) {
         { flags: 'a' }
       );
     } catch (err) {
-      // Silently fail if we can't create the log file
       return;
     }
   }
@@ -288,7 +287,21 @@ function _debugLog(level, msg) {
   _logStream.write(`[${ts}] [${level}] ${msg}\n`);
 }
 
-// ── Default export (matches existing logger.method() call sites) ──────────────
+// NEW: Function to close the log stream
+function _closeLogStream() {
+  if (_logStream) {
+    _logStream.end();
+    _logStream = null;
+  }
+}
+
+// NEW: Cleanup function to be called when done
+export function cleanup() {
+  _stopSpinner();
+  _closeLogStream();
+}
+
+// ── Default export ────────────────────────────────────────────────────────────
 export default {
   printHeader,
   step,
@@ -303,4 +316,5 @@ export default {
   table,
   bigLog,
   printSummary,
+  cleanup,  // Export cleanup function
 };
