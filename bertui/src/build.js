@@ -1,6 +1,6 @@
 // bertui/src/build.js
 import { join } from 'path';
-import { existsSync, mkdirSync, rmSync, readdirSync, statSync } from 'fs';
+import { existsSync, mkdirSync, rmSync, readdirSync } from 'fs';
 import logger from './logger/logger.js';
 import { loadEnvVariables } from './utils/env.js';
 import { globalCache } from './utils/cache.js';
@@ -13,9 +13,8 @@ import { generateSitemap } from './build/generators/sitemap-generator.js';
 import { generateRobots } from './build/generators/robots-generator.js';
 import { compileLayouts } from './layouts/index.js';
 import { compileLoadingComponents } from './loading/index.js';
-import { analyzeRoutes, logHydrationReport } from './hydration/index.js';
+import { analyzeRoutes } from './hydration/index.js';
 import { analyzeBuild } from './analyzer/index.js';
-import { buildAliasMap } from './utils/importhow.js';
 
 const TOTAL_STEPS = 10;
 
@@ -46,8 +45,8 @@ export async function buildProduction(options = {}) {
 
     // ── Step 2: Compile ──────────────────────────────────────────────────────
     logger.step(2, TOTAL_STEPS, 'Compiling');
-    const { routes, serverIslands, clientRoutes } = await compileForBuild(root, buildDir, envVars, config);
-    logger.stepDone('Compiling', `${routes.length} routes · ${serverIslands.length} islands`);
+    const { routes } = await compileForBuild(root, buildDir, envVars, config);
+    logger.stepDone('Compiling', `${routes.length} routes`);
 
     // ── Step 3: Layouts ──────────────────────────────────────────────────────
     logger.step(3, TOTAL_STEPS, 'Layouts');
@@ -78,15 +77,16 @@ export async function buildProduction(options = {}) {
     // ── Step 8: Bundle JS ────────────────────────────────────────────────────
     logger.step(8, TOTAL_STEPS, 'Bundling JS');
     const buildEntry = join(buildDir, 'main.js');
-    const routerPath = join(buildDir, 'router.js');
-    if (!existsSync(buildEntry)) throw new Error('main.js not found in build dir');
-    const result = await bundleJavaScript(buildEntry, routerPath, outDir, envVars, buildDir, analyzedRoutes, importhow, root, config);
+    if (!existsSync(buildEntry)) {
+      throw new Error('main.js not found in build dir — make sure src/main.jsx exists');
+    }
+    const result = await bundleJavaScript(buildEntry, outDir, envVars, buildDir, root, config);
     totalKB = (result.outputs.reduce((a, o) => a + (o.size || 0), 0) / 1024).toFixed(1);
     logger.stepDone('Bundling JS', `${totalKB} KB · tree-shaken`);
 
     // ── Step 9: HTML ─────────────────────────────────────────────────────────
     logger.step(9, TOTAL_STEPS, 'Generating HTML');
-    await generateProductionHTML(root, outDir, buildDir, result, routes, serverIslands, config);
+    await generateProductionHTML(root, outDir, result, routes, config);
     logger.stepDone('Generating HTML', `${routes.length} pages`);
 
     // ── Step 10: Sitemap + robots ────────────────────────────────────────────
@@ -95,33 +95,27 @@ export async function buildProduction(options = {}) {
     await generateRobots(config, outDir, routes);
     logger.stepDone('Sitemap & robots');
 
-    // Delete build dir AFTER HTML generation
     if (existsSync(buildDir)) rmSync(buildDir, { recursive: true, force: true });
 
-    // Generate bundle report
     try {
       await analyzeBuild(outDir, { outputFile: join(outDir, 'bundle-report.html') });
     } catch (reportErr) {
       logger.debug(`Bundle report generation skipped: ${reportErr.message}`);
     }
 
-    // ── Summary ──────────────────────────────────────────────────────────────
     logger.printSummary({
-      routes:        routes.length,
-      serverIslands: serverIslands.length,
-      interactive:   analyzedRoutes.interactive.length,
-      staticRoutes:  analyzedRoutes.static.length,
-      jsSize:        `${totalKB} KB`,
-      outDir:        'dist/',
+      routes:      routes.length,
+      interactive: analyzedRoutes.interactive.length,
+      staticRoutes: analyzedRoutes.static.length,
+      jsSize:      `${totalKB} KB`,
+      outDir:      'dist/',
     });
 
-    // Clean up logger resources
     logger.cleanup();
-
     return { success: true };
 
   } catch (error) {
-    logger.stepFail('Build', error.message);
+    logger.stepFail('Build', error?.message || String(error));
     if (existsSync(buildDir)) rmSync(buildDir, { recursive: true, force: true });
     throw error;
   }
@@ -163,6 +157,7 @@ async function generateProductionImportMap(root, config) {
 }
 
 async function copyNodeModulesToDist(root, outDir, importMap) {
+  const { mkdirSync } = await import('fs');
   const dest = join(outDir, 'assets', 'node_modules');
   mkdirSync(dest, { recursive: true });
   const src = join(root, 'node_modules');
@@ -181,26 +176,22 @@ async function copyNodeModulesToDist(root, outDir, importMap) {
   }
 }
 
-async function bundleJavaScript(buildEntry, routerPath, outDir, envVars, buildDir, analyzedRoutes, importhow, root, config) {
+async function bundleJavaScript(buildEntry, outDir, envVars, buildDir, root, config) {
   const originalCwd = process.cwd();
   process.chdir(buildDir);
 
   try {
-    const entrypoints = [buildEntry];
-    if (existsSync(routerPath)) entrypoints.push(routerPath);
-
     const importMap = await generateProductionImportMap(root, config);
     await Bun.write(join(outDir, 'import-map.json'), JSON.stringify({ imports: importMap }, null, 2));
     await copyNodeModulesToDist(root, outDir, importMap);
 
-    // Copy @bunnyx/api client to dist so the importmap entry resolves
     const bunnyxSrc = join(root, 'bunnyx-api', 'api-client.js');
     if (existsSync(bunnyxSrc)) {
+      const { mkdirSync } = await import('fs');
       mkdirSync(join(outDir, 'bunnyx-api'), { recursive: true });
       await Bun.write(join(outDir, 'bunnyx-api', 'api-client.js'), Bun.file(bunnyxSrc));
     }
 
-    // CSS Module Plugin for Bun.build
     const cssModulePlugin = {
       name: 'css-modules',
       setup(build) {
@@ -215,36 +206,42 @@ async function bundleJavaScript(buildEntry, routerPath, outDir, envVars, buildDi
       },
     };
 
-    const result = await Bun.build({
-      entrypoints,
-      outdir:  join(outDir, 'assets'),
-      target:  'browser',
-      format:  'esm',
-      plugins: [cssModulePlugin],
-      minify: {
-        whitespace:  true,
-        syntax:      true,
-        identifiers: true,
-      },
-      splitting:  true,
-      sourcemap: 'external',
-      metafile:   true,
-      naming: {
-        entry: 'js/[name]-[hash].js',
-        chunk: 'js/chunks/[name]-[hash].js',
-        asset: 'assets/[name]-[hash].[ext]',
-      },
-      external: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime', '@bunnyx/api'],
-      define: {
-        'process.env.NODE_ENV': '"production"',
-        ...Object.fromEntries(
-          Object.entries(envVars).map(([k, v]) => [`process.env.${k}`, JSON.stringify(v)])
-        ),
-      },
-    });
+    let result;
+    try {
+      result = await Bun.build({
+        entrypoints: [buildEntry],
+        outdir:  join(outDir, 'assets'),
+        target:  'browser',
+        format:  'esm',
+        plugins: [cssModulePlugin],
+        minify: {
+          whitespace:  true,
+          syntax:      true,
+          identifiers: true,
+        },
+        splitting:  true,
+        sourcemap: 'external',
+        metafile:   true,
+        naming: {
+          entry: 'js/[name]-[hash].js',
+          chunk: 'js/chunks/[name]-[hash].js',
+          asset: 'assets/[name]-[hash].[ext]',
+        },
+        external: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime', '@bunnyx/api'],
+        define: {
+          'process.env.NODE_ENV': '"production"',
+          ...Object.fromEntries(
+            Object.entries(envVars).map(([k, v]) => [`process.env.${k}`, JSON.stringify(v)])
+          ),
+        },
+      });
+    } catch (err) {
+      throw new Error(`Bun.build failed: ${err?.message || String(err)}`);
+    }
 
     if (!result.success) {
-      throw new Error(`Bundle failed\n${result.logs?.map(l => l.message).join('\n') || 'Unknown error'}`);
+      const msgs = (result.logs || []).map(l => l?.message || l?.text || JSON.stringify(l)).join('\n');
+      throw new Error(`Bundle failed\n${msgs || 'Check your imports for .jsx extensions or unresolvable paths'}`);
     }
 
     if (result.metafile) {
@@ -263,7 +260,7 @@ export async function build(options = {}) {
     await buildProduction(options);
     process.exit(0);
   } catch (error) {
-    console.error(error);
+    console.error('Build error:', error?.message || String(error));
     process.exit(1);
   }
 }

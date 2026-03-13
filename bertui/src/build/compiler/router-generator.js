@@ -7,14 +7,13 @@ export async function generateBuildRouter(routes, buildDir) {
     const importPath = `./pages/${route.file.replace(/\.(jsx|tsx|ts)$/, '.js')}`;
     return `import ${componentName} from '${importPath}';`;
   }).join('\n');
-  
+
   const routeConfigs = routes.map((route, i) => {
     const componentName = `Page${i}`;
     return `  { path: '${route.route}', component: ${componentName}, type: '${route.type}' }`;
   }).join(',\n');
-  
+
   const routerCode = `import React, { useState, useEffect, createContext, useContext } from 'react';
-import { createRoot, hydrateRoot } from 'react-dom/client';
 
 const RouterContext = createContext(null);
 
@@ -77,16 +76,16 @@ export function Router({ routes }) {
 
 export function Link({ to, children, ...props }) {
   const { navigate } = useRouter();
-  return React.createElement('a', { 
-    href: to, 
-    onClick: (e) => { e.preventDefault(); navigate(to); }, 
-    ...props 
+  return React.createElement('a', {
+    href: to,
+    onClick: (e) => { e.preventDefault(); navigate(to); },
+    ...props
   }, children);
 }
 
 function NotFound() {
   return React.createElement('div', {
-    style: { display: 'flex', flexDirection: 'column', alignItems: 'center', 
+    style: { display: 'flex', flexDirection: 'column', alignItems: 'center',
              justifyContent: 'center', minHeight: '100vh', fontFamily: 'system-ui' }
   },
     React.createElement('h1', { style: { fontSize: '6rem', margin: 0 } }, '404'),
@@ -100,22 +99,7 @@ ${imports}
 export const routes = [
 ${routeConfigs}
 ];
-
-// Mount the app
-// - Server Islands (window.__BERTUI_HYDRATE__ = true):
-//   Use hydrateRoot — React attaches to the existing static HTML without re-rendering.
-//   This is what gives you instant content + zero flash.
-// - Client-only pages (window.__BERTUI_HYDRATE__ = false):
-//   Use createRoot — React renders from scratch as normal.
-const container = document.getElementById('root');
-const app = React.createElement(Router, { routes });
-
-if (window.__BERTUI_HYDRATE__) {
-  hydrateRoot(container, app);
-} else {
-  createRoot(container).render(app);
-}
 `;
-  
+
   await Bun.write(join(buildDir, 'router.js'), routerCode);
 }

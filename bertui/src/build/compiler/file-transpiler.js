@@ -186,10 +186,13 @@ function _usesJSX(code) {
          /<[A-Z]/.test(code);
 }
 
-// AFTER
 function _removeCSSImports(code) {
-  // Remove ALL css imports including module css
-  code = code.replace(/import\s+\w+\s+from\s+['"][^'"]*\.module\.css['"];?\s*/g, '');
+  // Replace CSS module imports with a Proxy so styles.foo = 'foo' at runtime
+  code = code.replace(
+    /import\s+(\w+)\s+from\s+['"][^'"]*\.module\.css['"];?\s*/g,
+    (_, varName) => `const ${varName} = new Proxy({}, { get: (_, k) => k });\n`
+  );
+  // Strip plain CSS imports entirely
   code = code.replace(/import\s+['"][^'"]*\.css['"];?\s*/g, '');
   code = code.replace(/import\s+['"]bertui\/styles['"]\s*;?\s*/g, '');
   return code;
