@@ -2,14 +2,13 @@
 
 **Zero-config React framework powered by Bun. File-based routing, Server Islands, and a build system that gets out of your way.**
 
-[![Version](https://img.shields.io/badge/version-1.2.2-blue)](https://www.npmjs.com/package/bertui)
+[![Version](https://img.shields.io/badge/version-1.2.9-blue)](https://www.npmjs.com/package/bertui)
 [![Bun Powered](https://img.shields.io/badge/runtime-Bun-f472b6)](https://bun.sh)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ---
 
 ## Quick Start
-
 ```bash
 bunx create-bertui my-app
 cd my-app
@@ -18,11 +17,51 @@ bun run dev
 
 ---
 
+## What's New in v1.2.9
+
+### Server Islands — Rebuilt from the Ground Up
+
+Server Islands are back and fully working. One export, zero config, pure HTML at build time.
+```jsx
+// src/pages/about.jsx
+export const render = "static"
+
+export default function About() {
+  return (
+    <div>
+      <h1>About Us</h1>
+      <p>Rendered at build time. Zero JS in the browser.</p>
+    </div>
+  )
+}
+```
+
+BertUI runs `renderToString` on your page at build time and writes pure HTML to `dist/`. No React runtime ships to the browser. No hydration. Just HTML.
+
+Three render modes, one export:
+```jsx
+// Pure HTML — zero JS, zero React in the browser
+export const render = "static"
+
+// SSR HTML + JS bundle — pre-rendered for instant load, hydrated for interactivity  
+export const render = "server"
+
+// Default — client-only React SPA (no export needed)
+export default function Page() {}
+```
+
+**Rules for static and server pages:**
+- No React hooks (`useState`, `useEffect`, etc.)
+- No event handlers (`onClick`, `onChange`, etc.)
+- No browser APIs (`window`, `document`, `localStorage`)
+- Violations are caught at build time with a clear error
+
+---
+
 ## What's New in v1.2.2
 
 ### Import Aliases (`importhow`)
 No more `../../../` chains. Define aliases in your config and import cleanly from anywhere.
-
 ```javascript
 // bertui.config.js
 export default {
@@ -32,7 +71,6 @@ export default {
   }
 }
 ```
-
 ```javascript
 // anywhere in your project
 import Button from 'amani/button';
@@ -43,7 +81,6 @@ Aliases are resolved at compile time — zero runtime overhead.
 
 ### Node Modules — Just Work
 Install a package, import it. That's it.
-
 ```javascript
 import { format } from 'date-fns';
 import confetti from 'canvas-confetti';
@@ -53,7 +90,6 @@ In dev, packages are served from your local filesystem. In production, only the 
 
 ### CLI — New Look
 The build and dev output is now compact and step-based instead of verbose line-by-line logs.
-
 ```
   ██████╗ ███████╗██████╗ ████████╗██╗   ██╗██╗
   ██╔══██╗██╔════╝██╔══██╗╚══██╔══╝██║   ██║██║
@@ -64,7 +100,7 @@ The build and dev output is now compact and step-based instead of verbose line-b
   by Pease Ernest  ·  BUILD
 
   [ 1/10] ✓  Loading env
-  [ 2/10] ✓  Compiling           5 routes · 1 islands
+  [ 2/10] ✓  Compiling           5 routes
   [ 3/10] ⠸  Layouts             ...
   ...
   ✓ Done  0.54s
@@ -82,7 +118,6 @@ Run `bun add some-package` and the dev server picks it up automatically. The imp
 ## Features
 
 ### File-Based Routing
-
 ```
 src/pages/index.jsx          →  /
 src/pages/about.jsx          →  /about
@@ -92,31 +127,45 @@ src/pages/blog/[slug].jsx    →  /blog/:slug
 
 ### Server Islands
 
-Add one line to opt a page into static generation at build time.
-
+Three render modes. One export at the top of your page.
 ```jsx
-// src/pages/about.jsx
-export const render = "server";
-export const title = "About Us";
+// render = "static" — pure HTML, zero JS
+// Perfect for: marketing pages, blog posts, docs, any page without interactivity
+export const render = "static"
+export const title = "About Us"
 
 export default function About() {
   return (
     <div>
       <h1>About Us</h1>
-      <p>Pre-rendered as static HTML at build time.</p>
+      <p>Pre-rendered at build time. Instant load, perfect SEO.</p>
     </div>
-  );
+  )
+}
+```
+```jsx
+// render = "server" — SSR HTML in the body + JS bundle attached
+// Perfect for: pages that need fast first paint AND interactivity after load
+export const render = "server"
+
+export default function Dashboard() {
+  return <div><h1>Dashboard</h1></div>
+}
+```
+```jsx
+// default — client-only React (no export needed)
+// Perfect for: highly interactive pages, apps, anything with lots of state
+export default function Editor() {
+  const [value, setValue] = useState('')
+  return <textarea onChange={e => setValue(e.target.value)} />
 }
 ```
 
-- Static HTML embedded in the output for instant load and perfect SEO
-- Pages with hooks or event handlers are rejected at build time with a clear error
-- All other pages are client-only by default
+BertUI automatically detects the render mode and generates the right HTML for each page. Static pages get zero JS. Server pages get pre-rendered HTML with hydration. Default pages get the full SPA treatment.
 
 ### TypeScript
 
 `.tsx` and `.ts` files work with no setup. Mix them freely with `.jsx`.
-
 ```typescript
 // src/pages/blog/[slug].tsx
 import { useRouter } from 'bertui/router';
@@ -130,7 +179,6 @@ export default function BlogPost() {
 ### SEO
 
 `sitemap.xml` and `robots.txt` are generated automatically from your routes. Requires `baseUrl` in config.
-
 ```javascript
 export default {
   baseUrl: 'https://example.com',
@@ -148,7 +196,6 @@ Put your styles in `src/styles/`. They are combined and minified with LightningC
 ---
 
 ## Project Structure
-
 ```
 my-app/
 ├── src/
@@ -166,7 +213,6 @@ my-app/
 ---
 
 ## Configuration
-
 ```javascript
 // bertui.config.js
 export default {
@@ -209,6 +255,7 @@ Benchmarks on an Intel i3-2348M, 7.6GB RAM.
 
 - `bertui-elysia` — API routes, auth, database
 - `bertui-animate` — GPU-accelerated animations
+- Partial hydration — `<Island>` component for mixed static/interactive pages
 
 ---
 

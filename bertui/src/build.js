@@ -44,10 +44,17 @@ export async function buildProduction(options = {}) {
     logger.stepDone('Loading env', `${Object.keys(envVars).length} vars`);
 
     // ── Step 2: Compile ──────────────────────────────────────────────────────
+    // ── Step 2: Compile ──────────────────────────────────────────────────────
     logger.step(2, TOTAL_STEPS, 'Compiling');
     const { routes } = await compileForBuild(root, buildDir, envVars, config);
     logger.stepDone('Compiling', `${routes.length} routes`);
 
+    // TEMP DEBUG - remove after
+    const aboutPath = join(buildDir, 'pages', 'about.js')
+    if (existsSync(aboutPath)) {
+      const src = await Bun.file(aboutPath).text()
+      console.log('\n--- about.js compiled output ---\n', src.slice(0, 500), '\n---\n')
+    }
     // ── Step 3: Layouts ──────────────────────────────────────────────────────
     logger.step(3, TOTAL_STEPS, 'Layouts');
     const layouts = await compileLayouts(root, buildDir);
@@ -86,7 +93,7 @@ export async function buildProduction(options = {}) {
 
     // ── Step 9: HTML ─────────────────────────────────────────────────────────
     logger.step(9, TOTAL_STEPS, 'Generating HTML');
-    await generateProductionHTML(root, outDir, result, routes, config);
+    await generateProductionHTML(root, outDir, result, routes, config, buildDir)
     logger.stepDone('Generating HTML', `${routes.length} pages`);
 
     // ── Step 10: Sitemap + robots ────────────────────────────────────────────

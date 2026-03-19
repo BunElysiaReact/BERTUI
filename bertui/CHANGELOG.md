@@ -1,13 +1,34 @@
 # BertUI Changelog
 
 ---
+
+## [1.2.9] - 2026-03-19
+
+### Server Islands — Rebuilt
+- Rewrote the entire SSR pipeline from scratch
+- `renderToString` now runs correctly at build time using the project's own React instance
+- Fixed the two-React-instances bug that caused silent fallback to client render
+- Added `render = "static"` mode — pure HTML output, zero JS, zero React in the browser
+- Added `render = "server"` mode — SSR HTML in the body with JS bundle attached for hydration
+- Both modes fall back to client render gracefully if SSR fails, with a warning
+- Build validator catches hooks, event handlers, and browser API usage in static/server pages at build time with clear error messages
+- SSR runs as a separate build step before the browser bundle, ensuring all deps resolve correctly
+
+Three render modes, one export:
+```jsx
+export const render = "static"  // pure HTML, zero JS
+export const render = "server"  // SSR HTML + hydration
+// no export = default client-only SPA
+```
+
+---
+
 ## [1.2.2] - 2026-03-09
 
 ### Import Aliases
 - Added `importhow` config option for defining custom import aliases
 - Aliases are resolved at compile time with zero runtime overhead
 - Supports deep imports such as `import Button from 'amani/button'`
-
 ```javascript
 // bertui.config.js
 export default {
@@ -17,6 +38,7 @@ export default {
   }
 }
 ```
+
 ### CLI
 - Replaced verbose line-by-line logs with a compact step-based progress display
 - Added large block-letter BERTUI header with "by Pease Ernest" on every command
@@ -58,7 +80,7 @@ export default {
 
 ## [1.1.0] - 2025-12-20
 
-### Server Islands
+### Server Islands (original implementation)
 - Added `export const render = "server"` to opt a page into static generation at build time
 - Static HTML is extracted and embedded in the HTML file for instant content and better SEO
 - Pages with hooks or event handlers are rejected at build time with a clear error
