@@ -1,60 +1,56 @@
 {
   "name": "bertui",
   "version": "1.2.9",
-  "description": "Lightning-fast React dev server powered by Bun - Now with Rust image optimization (WASM, no Rust required for users)",
+  "description": "Lightning-fast React dev server powered by Bun with server islands, SSR, and partial hydration",
   "type": "module",
   "main": "./index.js",
   "types": "./types/index.d.ts",
   "bin": {
     "bertui": "./bin/bertui.js"
   },
-"exports": {
-  ".": {
-    "types": "./types/index.d.ts",
-    "import": "./index.js",
-    "default": "./index.js"
+  "exports": {
+    ".": {
+      "types": "./types/index.d.ts",
+      "import": "./index.js",
+      "default": "./index.js"
+    },
+    "./hmr": {
+      "import": "./src/client/hmr-runtime.js"
+    },
+    "./router": {
+      "types": "./types/router.d.ts",
+      "import": "./src/router/index.js"
+    },
+    "./config": {
+      "types": "./types/config.d.ts",
+      "import": "./src/config/index.js"
+    },
+    "./logger": {
+      "import": "./src/logger/logger.js"
+    },
+    "./styles": "./src/styles/bertui.css",
+    "./compiler": {
+      "import": "./src/client/compiler.js"
+    },
+    "./layouts": {
+      "import": "./src/layouts/index.js"
+    },
+    "./loading": {
+      "import": "./src/loading/index.js"
+    },
+    "./hydration": {
+      "import": "./src/hydration/index.js"
+    },
+    "./dev": {
+      "import": "./src/server/dev-server-utils.js"
+    },
+    "./build": {
+      "import": "./src/build.js"
+    }
   },
-  "./hmr": {
-    "import": "./src/client/hmr-runtime.js"
-  },
-  "./image-optimizer": {
-    "import": "./src/image-optimizer/index.js"
-  },
-  "./router": {
-    "types": "./types/router.d.ts",
-    "import": "./src/router/index.js"
-  },
-  "./config": {
-    "types": "./types/config.d.ts",
-    "import": "./src/config/index.js"
-  },
-  "./logger": {
-    "import": "./src/logger/logger.js"
-  },
-  "./styles": "./src/styles/bertui.css",
-  "./compiler": {
-    "import": "./src/client/compiler.js"
-  },
-  "./layouts": {
-    "import": "./src/layouts/index.js"
-  },
-  "./loading": {
-    "import": "./src/loading/index.js"
-  },
-  "./hydration": {
-    "import": "./src/hydration/index.js"
-  },
-  "./dev": {
-    "import": "./src/server/dev-server-utils.js"
-  },
-  "./build": {
-    "import": "./src/build.js"
-  }
-},
   "files": [
     "bin",
     "src",
-    "dist",
     "types",
     "index.js",
     "README.md",
@@ -65,16 +61,14 @@
     "build": "bun bin/bertui.js build",
     "serve": "bun bin/bertui.js serve",
     "preview": "bun bin/bertui.js serve --port 5000",
-    "build:wasm": "cd src/image-optimizer-rust && wasm-pack build --target web --out-dir ../../dist/image-optimizer/wasm && bun run fix:wasm",
-    "fix:wasm": "node scripts/fix-wasm-exports.js",
-    "prepublishOnly": "echo 'Note: Ensure WASM is built via build:wasm before publishing'",
     "test": "cd test-app && bun run dev"
   },
   "dependencies": {
     "elysia": "^1.0.0",
     "ernest-logger": "^2.0.0",
     "lightningcss": "^1.30.2",
-    "react-refresh": "^0.14.0"
+    "react-refresh": "^0.14.0",
+    "sharp": "^0.33.0"
   },
   "peerDependencies": {
     "bun": ">=1.0.0",
@@ -83,13 +77,9 @@
   },
   "devDependencies": {
     "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
-    "oxipng": "^1.0.1",
-    "wasm-pack": "^0.12.1"
+    "@types/react-dom": "^18.2.0"
   },
   "optionalDependencies": {
-    "@bertui/image-optimizer-wasm": "0.1.0",
-    "oxipng": "^8.0.0",
     "sass": "^1.69.5"
   },
   "keywords": [
@@ -98,10 +88,9 @@
     "elysia",
     "hmr",
     "fast-refresh",
-    "image-optimization",
-    "rust",
-    "wasm",
     "server-islands",
+    "ssr",
+    "partial-hydration",
     "seo",
     "sitemap",
     "typescript"

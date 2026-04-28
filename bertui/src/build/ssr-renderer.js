@@ -1,22 +1,14 @@
 // bertui/src/build/ssr-renderer.js
 import { join } from 'path'
-import { existsSync, mkdirSync, rmSync } from 'fs'
+import { existsSync } from 'fs'
 import logger from '../logger/logger.js'
+import { needsHydration } from '../hydration/index.js'
 
-/**
- * Render a static page to HTML string using renderToString.
- * Forces both the page and renderToString to use the same React
- * instance from the project's own node_modules.
- */
-export async function renderPageToHTML(compiledPagePath, buildDir) {
+export async function renderPageToHTML(compiledPagePath, buildDir, sourcePath = null) {
   try {
-    // Extract project root from compiled path
-    // e.g. /project/.bertuibuild/pages/about.js → /project/
     const projectRoot = compiledPagePath.split('.bertuibuild')[0]
 
-    // Explicitly resolve React from the PROJECT's node_modules
-    // This prevents the two-React-instances problem when bertui is bun linked
-    const reactPath         = join(projectRoot, 'node_modules', 'react', 'index.js')
+    const reactPath          = join(projectRoot, 'node_modules', 'react', 'index.js')
     const reactDomServerPath = join(projectRoot, 'node_modules', 'react-dom', 'server.js')
 
     if (!existsSync(reactPath)) {
@@ -29,10 +21,9 @@ export async function renderPageToHTML(compiledPagePath, buildDir) {
       return null
     }
 
-    const React            = await import(reactPath)
-    const { renderToString } = await import(reactDomServerPath)
+    const React = await import(reactPath)
+    const { renderToString, renderToStaticMarkup } = await import(reactDomServerPath)
 
-    // Import the compiled page
     const mod = await import(`${compiledPagePath}?t=${Date.now()}`)
     const Component = mod.default
 
@@ -41,17 +32,32 @@ export async function renderPageToHTML(compiledPagePath, buildDir) {
       return null
     }
 
-    return renderToString(React.createElement(Component))
+    // Use source file to check interactivity if provided
+    let interactive = true
+    if (sourcePath) {
+      try {
+        const src = await Bun.file(sourcePath).text()
+        interactive = needsHydration(src)
+      } catch {
+        // fallback to renderToString if we can't read source
+      }
+    }
+
+    // Static pages don't need hydration markers — use renderToStaticMarkup
+    // Interactive pages use renderToString so hydrateRoot works on client
+    const html = interactive
+      ? renderToString(React.createElement(Component))
+      : renderToStaticMarkup(React.createElement(Component))
+
+    logger.debug(`   ${interactive ? 'renderToString' : 'renderToStaticMarkup'} → ${compiledPagePath}`)
+    return { html, interactive }
 
   } catch (err) {
-    logger.warn(`renderToString failed for ${compiledPagePath}: ${err.message}`)
+    logger.warn(`SSR render failed for ${compiledPagePath}: ${err.message}`)
     return null
   }
 }
 
-/**
- * Check if a route's source file has render = "server" or render = "static"
- */
 export async function getPageRenderMode(sourcePath) {
   try {
     const src = await Bun.file(sourcePath).text()

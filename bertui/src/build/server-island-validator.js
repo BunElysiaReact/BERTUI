@@ -60,7 +60,9 @@ export async function validateAllServerIslands(routes) {
       if (!result.valid) {
         displayValidationErrors(route.path, result.errors)
       }
-    } catch {}
+    }  catch (e) {
+      logger.warn(`⚠️  Could not read ${route.path}: ${e.message}`)
+  }
   }
 
   return { serverIslands, validationResults }

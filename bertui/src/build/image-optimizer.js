@@ -1,43 +1,31 @@
-// bertui/src/build/image-optimizer.js - UPDATED WITH WASM
+// bertui/src/build/image-optimizer.js
 import { join, extname } from 'path';
 import { existsSync, mkdirSync, readdirSync } from 'fs';
 import logger from '../logger/logger.js';
-import { optimizeImage, hasWasm } from '../image-optimizer/index.js';
-import { copyImagesSync } from '../images/index.js';
+
+const OPTIMIZABLE = ['.png', '.jpg', '.jpeg', '.webp', '.avif'];
+const COPYABLE = ['.gif', '.svg', '.ico', '.bmp', '.tiff', '.tif'];
 
 export async function optimizeImages(srcDir, outDir, options = {}) {
-  const {
-    quality = 80,
-    webpQuality = 75,
-    verbose = false
-  } = options;
+  const { quality = 80, webpQuality = 75 } = options;
 
-  // Check if WASM is available
-  const wasmAvailable = await hasWasm();
-  
-  if (wasmAvailable) {
-    logger.info(`🦀 Optimizing images with Rust WASM (quality: ${quality})...`);
-  } else {
-    logger.info('📋 Copying images (WASM optimizer not available)...');
+  let sharp;
+  try {
+    sharp = (await import('sharp')).default;
+    logger.info(`🖼️  Optimizing images with sharp (quality: ${quality})...`);
+  } catch {
+    logger.warn('sharp not installed — copying images as-is');
+    return copyAllImages(srcDir, outDir);
   }
-
-  const imageExtensions = [
-    '.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg', 
-    '.avif', '.ico', '.bmp', '.tiff', '.tif'
-  ];
-  
-  let optimized = 0;
-  let copied = 0;
-  let skipped = 0;
-  let totalSaved = 0;
-  const results = [];
 
   if (!existsSync(srcDir)) {
     logger.warn(`⚠️  Source not found: ${srcDir}`);
-    return { optimized: 0, copied: 0, saved: 0, results: [] };
+    return { optimized: 0, copied: 0, saved: 0 };
   }
 
   mkdirSync(outDir, { recursive: true });
+
+  let optimized = 0, copied = 0, totalSaved = 0;
 
   async function processDirectory(dir, targetDir) {
     const entries = readdirSync(dir, { withFileTypes: true });
@@ -47,85 +35,70 @@ export async function optimizeImages(srcDir, outDir, options = {}) {
       const destPath = join(targetDir, entry.name);
 
       if (entry.isDirectory()) {
-        const subDestPath = join(targetDir, entry.name);
-        mkdirSync(subDestPath, { recursive: true });
-        await processDirectory(srcPath, subDestPath);
-      } else if (entry.isFile()) {
-        const ext = extname(entry.name).toLowerCase();
-        
-        if (imageExtensions.includes(ext)) {
-          try {
-            const file = Bun.file(srcPath);
-            const buffer = await file.arrayBuffer();
-            const originalSize = buffer.byteLength;
-            
-            // Try WASM optimization first, fallback to copy
-            if (wasmAvailable && ['.png', '.jpg', '.jpeg', '.webp'].includes(ext)) {
-              const format = ext.slice(1);
-              const result = await optimizeImage(buffer, {
-                format,
-                quality,
-                webpQuality
-              });
-              
-              await Bun.write(destPath, new Uint8Array(result.data));
-              
-              const saved = originalSize - result.optimized_size;
-              totalSaved += saved;
-              optimized++;
-              
-              results.push({
-                file: entry.name,
-                original: formatBytes(originalSize),
-                optimized: formatBytes(result.optimized_size),
-                saved: formatBytes(saved),
-                percent: result.savings_percent.toFixed(1) + '%'
-              });
-            } else {
-              // Just copy unsupported formats
-              await Bun.write(destPath, file);
-              copied++;
-              results.push({
-                file: entry.name,
-                status: 'copied'
-              });
-            }
-          } catch (error) {
-            logger.warn(`  Failed to process ${entry.name}: ${error.message}`);
-            // Fallback: copy original
-            await Bun.write(destPath, Bun.file(srcPath));
-            copied++;
-          }
-        } else {
-          // Copy non-image files
+        mkdirSync(destPath, { recursive: true });
+        await processDirectory(srcPath, destPath);
+        continue;
+      }
+
+      const ext = extname(entry.name).toLowerCase();
+
+      if (OPTIMIZABLE.includes(ext)) {
+        try {
+          const originalSize = (await Bun.file(srcPath).arrayBuffer()).byteLength;
+
+          await sharp(srcPath)
+            .webp({ quality: webpQuality })
+            .toFile(destPath.replace(ext, '.webp'));
+
+          const newSize = (await Bun.file(destPath.replace(ext, '.webp')).arrayBuffer()).byteLength;
+          totalSaved += originalSize - newSize;
+          optimized++;
+        } catch (e) {
+          logger.warn(`  Failed to optimize ${entry.name}: ${e.message}, copying instead`);
           await Bun.write(destPath, Bun.file(srcPath));
-          skipped++;
+          copied++;
         }
+      } else if (COPYABLE.includes(ext)) {
+        await Bun.write(destPath, Bun.file(srcPath));
+        copied++;
       }
     }
   }
 
   await processDirectory(srcDir, outDir);
 
-  // Show summary
-  if (optimized > 0) {
-    logger.success(`✅ Optimized ${optimized} images with Rust WASM`);
-    logger.table(results.slice(0, 10));
-    if (results.length > 10) {
-      logger.info(`   ... and ${results.length - 10} more images`);
+  logger.success(`✅ Images: ${optimized} optimized, ${copied} copied, saved ${formatBytes(totalSaved)}`);
+  return { optimized, copied, saved: totalSaved };
+}
+
+async function copyAllImages(srcDir, outDir) {
+  if (!existsSync(srcDir)) return { optimized: 0, copied: 0, saved: 0 };
+  mkdirSync(outDir, { recursive: true });
+
+  let copied = 0;
+  const all = [...OPTIMIZABLE, ...COPYABLE];
+
+  async function walk(dir, targetDir) {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const src = join(dir, entry.name);
+      const dest = join(targetDir, entry.name);
+      if (entry.isDirectory()) {
+        mkdirSync(dest, { recursive: true });
+        await walk(src, dest);
+      } else if (all.includes(extname(entry.name).toLowerCase())) {
+        await Bun.write(dest, Bun.file(src));
+        copied++;
+      }
     }
-    logger.info(`📊 Total saved: ${formatBytes(totalSaved)}`);
-  }
-  
-  if (copied > 0) {
-    logger.info(`📋 Copied ${copied} images (fallback)`);
   }
 
-  return { optimized, copied, saved: totalSaved, results };
+  await walk(srcDir, outDir);
+  logger.info(`📋 Copied ${copied} images`);
+  return { optimized: 0, copied, saved: 0 };
 }
 
 export function copyImages(srcDir, outDir) {
-  return copyImagesSync(srcDir, outDir);
+  return copyAllImages(srcDir, outDir);
 }
 
 function formatBytes(bytes) {

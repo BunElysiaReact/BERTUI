@@ -4,6 +4,7 @@ import { mkdirSync, existsSync, cpSync } from 'fs'
 import logger from '../../logger/logger.js'
 import { extractMetaFromSource } from '../../utils/meta-extractor.js'
 import { renderPageToHTML, getPageRenderMode } from '../ssr-renderer.js'
+import { needsHydration, getHydrationScript, analyzeRoutes } from '../../hydration/index.js'
 
 export async function generateProductionHTML(root, outDir, buildResult, routes, config, buildDir) {
   const mainBundle = buildResult.outputs.find(o =>
@@ -19,46 +20,50 @@ export async function generateProductionHTML(root, outDir, buildResult, routes, 
   const defaultMeta = config.meta || {}
   const bertuiPackages = await copyBertuiPackagesToProduction(root, outDir)
 
+  // Analyze all routes upfront for hydration decisions
+  const analyzedRoutes = await analyzeRoutes(routes)
 
   logger.info(`Generating HTML for ${routes.length} routes...`)
 
   for (const route of routes) {
-    await processSingleRoute(route, config, defaultMeta, bundlePath, outDir, bertuiPackages, buildDir)
+    await processSingleRoute(route, config, defaultMeta, bundlePath, outDir, bertuiPackages, buildDir, analyzedRoutes)
   }
 
   logger.success(`HTML generation complete for ${routes.length} routes`)
 }
 
-async function processSingleRoute(route, config, defaultMeta, bundlePath, outDir, bertuiPackages, buildDir) {
+async function processSingleRoute(route, config, defaultMeta, bundlePath, outDir, bertuiPackages, buildDir, analyzedRoutes) {
   try {
     const sourceCode = await Bun.file(route.path).text()
     const pageMeta = extractMetaFromSource(sourceCode)
     const meta = { ...defaultMeta, ...pageMeta }
 
-    // Determine render mode from source
     const renderMode = await getPageRenderMode(route.path)
 
     let html
 
     if (renderMode === 'server' || renderMode === 'static') {
-      // Find the compiled version of this page in buildDir
       const compiledPath = findCompiledPath(route, buildDir)
 
       if (compiledPath && existsSync(compiledPath)) {
         logger.info(`  SSR rendering: ${route.route}`)
-        const ssrHTML = await renderPageToHTML(compiledPath, buildDir)
+        const result = await renderPageToHTML(compiledPath, buildDir, route.path)
 
-        if (ssrHTML) {
+        if (result) {
+          const { html: ssrHTML, interactive } = result
+
           if (renderMode === 'static') {
-            // Pure static — no JS at all
             html = generateStaticHTML({ ssrHTML, meta, bertuiPackages })
           } else {
-            // Server island — SSR HTML + JS bundle for hydration
-            html = generateServerIslandHTML({ ssrHTML, meta, bundlePath, bertuiPackages })
+            // Use hydration analysis to decide if we need a script tag
+            const hydrationScript = interactive
+              ? getHydrationScript(route.route, analyzedRoutes)
+              : null
+
+            html = generateServerIslandHTML({ ssrHTML, meta, bundlePath, bertuiPackages, hydrationScript })
           }
-          logger.success(`  ✓ SSR: ${route.route} (${renderMode})`)
+          logger.success(`  ✓ SSR: ${route.route} (${renderMode}, ${result.interactive ? 'hydrated' : 'static'})`)
         } else {
-          // SSR failed — fall back to client render with a warning
           logger.warn(`  SSR failed for ${route.route}, falling back to client render`)
           html = generateClientHTML({ meta, bundlePath, bertuiPackages })
         }
@@ -67,11 +72,9 @@ async function processSingleRoute(route, config, defaultMeta, bundlePath, outDir
         html = generateClientHTML({ meta, bundlePath, bertuiPackages })
       }
     } else {
-      // Default: client-only SPA
       html = generateClientHTML({ meta, bundlePath, bertuiPackages })
     }
 
-    // Write to dist/
     let htmlPath
     if (route.route === '/') {
       htmlPath = join(outDir, 'index.html')
@@ -89,18 +92,13 @@ async function processSingleRoute(route, config, defaultMeta, bundlePath, outDir
   }
 }
 
-/**
- * Find the compiled .js path for a route's source file
- */
 function findCompiledPath(route, buildDir) {
   const compiledFile = route.file.replace(/\.(jsx|tsx|ts)$/, '.js')
   return join(buildDir, 'pages', compiledFile)
 }
+
 // ─── HTML generators ──────────────────────────────────────────────────────────
 
-/**
- * render = "static" → pure HTML, zero JS
- */
 function generateStaticHTML({ ssrHTML, meta, bertuiPackages }) {
   const bertuiAnimateCSS = bertuiPackages.bertuiAnimate
     ? '<link rel="stylesheet" href="/css/bertui-animate.min.css">'
@@ -113,9 +111,9 @@ function generateStaticHTML({ ssrHTML, meta, bertuiPackages }) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${meta.title || 'BertUI App'}</title>
   <meta name="description" content="${meta.description || ''}">
-  ${meta.keywords     ? `<meta name="keywords" content="${meta.keywords}">` : ''}
-  ${meta.author       ? `<meta name="author" content="${meta.author}">` : ''}
-  ${meta.themeColor   ? `<meta name="theme-color" content="${meta.themeColor}">` : ''}
+  ${meta.keywords   ? `<meta name="keywords" content="${meta.keywords}">` : ''}
+  ${meta.author     ? `<meta name="author" content="${meta.author}">` : ''}
+  ${meta.themeColor ? `<meta name="theme-color" content="${meta.themeColor}">` : ''}
   <meta property="og:title" content="${meta.ogTitle || meta.title || 'BertUI App'}">
   <meta property="og:description" content="${meta.ogDescription || meta.description || ''}">
   ${meta.ogImage ? `<meta property="og:image" content="${meta.ogImage}">` : ''}
@@ -129,10 +127,7 @@ function generateStaticHTML({ ssrHTML, meta, bertuiPackages }) {
 </html>`
 }
 
-/**
- * render = "server" → SSR HTML + JS bundle for hydration
- */
-function generateServerIslandHTML({ ssrHTML, meta, bundlePath, bertuiPackages }) {
+function generateServerIslandHTML({ ssrHTML, meta, bundlePath, bertuiPackages, hydrationScript }) {
   const { importMapScript, bertuiAnimateCSS } = buildSharedAssets(meta, bertuiPackages)
 
   return `<!DOCTYPE html>
@@ -142,9 +137,9 @@ function generateServerIslandHTML({ ssrHTML, meta, bundlePath, bertuiPackages })
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${meta.title || 'BertUI App'}</title>
   <meta name="description" content="${meta.description || ''}">
-  ${meta.keywords     ? `<meta name="keywords" content="${meta.keywords}">` : ''}
-  ${meta.author       ? `<meta name="author" content="${meta.author}">` : ''}
-  ${meta.themeColor   ? `<meta name="theme-color" content="${meta.themeColor}">` : ''}
+  ${meta.keywords   ? `<meta name="keywords" content="${meta.keywords}">` : ''}
+  ${meta.author     ? `<meta name="author" content="${meta.author}">` : ''}
+  ${meta.themeColor ? `<meta name="theme-color" content="${meta.themeColor}">` : ''}
   <meta property="og:title" content="${meta.ogTitle || meta.title || 'BertUI App'}">
   <meta property="og:description" content="${meta.ogDescription || meta.description || ''}">
   ${meta.ogImage ? `<meta property="og:image" content="${meta.ogImage}">` : ''}
@@ -155,14 +150,12 @@ function generateServerIslandHTML({ ssrHTML, meta, bundlePath, bertuiPackages })
 </head>
 <body>
   <div id="root">${ssrHTML}</div>
-  <script type="module" src="/${bundlePath}"></script>
+  ${hydrationScript ? hydrationScript : ''}
+  ${hydrationScript ? `<script type="module" src="/${bundlePath}"></script>` : ''}
 </body>
 </html>`
 }
 
-/**
- * default → client-only SPA (existing behavior)
- */
 function generateClientHTML({ meta, bundlePath, bertuiPackages }) {
   const { importMapScript, bertuiAnimateCSS } = buildSharedAssets(meta, bertuiPackages)
 
@@ -173,9 +166,9 @@ function generateClientHTML({ meta, bundlePath, bertuiPackages }) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${meta.title || 'BertUI App'}</title>
   <meta name="description" content="${meta.description || ''}">
-  ${meta.keywords     ? `<meta name="keywords" content="${meta.keywords}">` : ''}
-  ${meta.author       ? `<meta name="author" content="${meta.author}">` : ''}
-  ${meta.themeColor   ? `<meta name="theme-color" content="${meta.themeColor}">` : ''}
+  ${meta.keywords   ? `<meta name="keywords" content="${meta.keywords}">` : ''}
+  ${meta.author     ? `<meta name="author" content="${meta.author}">` : ''}
+  ${meta.themeColor ? `<meta name="theme-color" content="${meta.themeColor}">` : ''}
   <meta property="og:title" content="${meta.ogTitle || meta.title || 'BertUI App'}">
   <meta property="og:description" content="${meta.ogDescription || meta.description || ''}">
   ${meta.ogImage ? `<meta property="og:image" content="${meta.ogImage}">` : ''}
@@ -233,7 +226,9 @@ async function copyBertuiPackagesToProduction(root, outDir) {
       mkdirSync(join(outDir, 'node_modules'), { recursive: true })
       cpSync(bertuiIconsSrc, dest, { recursive: true })
       packages.bertuiIcons = true
-    } catch {}
+    } catch (e) {
+      logger.warn(`Could not copy bertui-icons: ${e.message}`)
+    }
   }
 
   const bertuiAnimateSrc = join(nodeModulesDir, 'bertui-animate', 'dist')
@@ -246,7 +241,9 @@ async function copyBertuiPackagesToProduction(root, outDir) {
         cpSync(minCSS, join(dest, 'bertui-animate.min.css'))
         packages.bertuiAnimate = true
       }
-    } catch {}
+    } catch (e) {
+      logger.warn(`Could not copy bertui-animate: ${e.message}`)
+    }
   }
 
   const elysiaEdenSrc = join(nodeModulesDir, '@elysiajs', 'eden')
@@ -256,7 +253,9 @@ async function copyBertuiPackagesToProduction(root, outDir) {
       mkdirSync(join(outDir, 'node_modules', '@elysiajs'), { recursive: true })
       cpSync(elysiaEdenSrc, dest, { recursive: true })
       packages.elysiaEden = true
-    } catch {}
+    } catch (e) {
+      logger.warn(`Could not copy elysia eden: ${e.message}`)
+    }
   }
 
   return packages

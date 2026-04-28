@@ -1,41 +1,25 @@
 // bertui/src/hydration/index.js
-// Partial hydration - only hydrate interactive components, not whole page
-
 import logger from '../logger/logger.js';
 
-/**
- * Markers that make a component interactive (needs JS hydration)
- */
 const INTERACTIVE_MARKERS = [
-  // React hooks
   'useState', 'useEffect', 'useReducer', 'useCallback',
   'useMemo', 'useRef', 'useContext', 'useLayoutEffect',
   'useTransition', 'useDeferredValue', 'useSyncExternalStore',
-  // Event handlers
   'onClick', 'onChange', 'onSubmit', 'onInput', 'onFocus',
   'onBlur', 'onMouseEnter', 'onMouseLeave', 'onKeyDown',
   'onKeyUp', 'onScroll', 'onDrop', 'onDrag', 'onTouchStart',
-  // Browser APIs in component body
   'window.', 'document.', 'localStorage.', 'sessionStorage.',
   'navigator.', 'fetch(', 'WebSocket', 'EventSource',
   'setTimeout(', 'setInterval(', 'requestAnimationFrame(',
 ];
 
-/**
- * Scan source code to determine if a component needs hydration
- */
 export function needsHydration(sourceCode) {
   for (const marker of INTERACTIVE_MARKERS) {
-    if (sourceCode.includes(marker)) {
-      return true;
-    }
+    if (sourceCode.includes(marker)) return true;
   }
   return false;
 }
 
-/**
- * Get which specific interactive features a component uses
- */
 export function getInteractiveFeatures(sourceCode) {
   const features = [];
 
@@ -57,12 +41,9 @@ export function getInteractiveFeatures(sourceCode) {
   return features;
 }
 
-/**
- * Analyze all routes and classify them
- * Returns: { static: [], interactive: [], mixed: [] }
- */
 export async function analyzeRoutes(routes) {
-  const result = { static: [], interactive: [], mixed: [] };
+  // dropped 'mixed' — it was never populated
+  const result = { static: [], interactive: [] };
 
   for (const route of routes) {
     try {
@@ -71,16 +52,14 @@ export async function analyzeRoutes(routes) {
       const interactive = needsHydration(sourceCode);
       const features = getInteractiveFeatures(sourceCode);
 
+      const renderMode = isServerIsland ? 'none' : interactive ? 'full' : 'none';
+
       const analyzed = {
         ...route,
         interactive,
         isServerIsland,
         features,
-        hydrationMode: isServerIsland
-          ? 'none'
-          : interactive
-          ? 'full'
-          : 'none',
+        hydrationMode: renderMode,
       };
 
       if (isServerIsland || !interactive) {
@@ -98,21 +77,25 @@ export async function analyzeRoutes(routes) {
 }
 
 /**
- * Generate hydration-aware router that skips JS for static routes
- * Key insight: static routes still render HTML, just skip React.hydrate()
+ * Given analyzed routes, generate the hydration script tag for a given route path.
+ * Returns null if the route is static (no script needed).
  */
+export function getHydrationScript(routePath, analyzedRoutes) {
+  const isInteractive = analyzedRoutes.interactive.some(r => r.route === routePath);
+  if (!isInteractive) return null;
+
+  return `<script type="module" src="/_bertui/hydrate${routePath === '/' ? '/index' : routePath}.js"></script>`;
+}
+
 export function generatePartialHydrationCode(routes, analyzedRoutes) {
-  const interactivePaths = new Set(
-    analyzedRoutes.interactive.map(r => r.route)
-  );
+  const interactivePaths = new Set(analyzedRoutes.interactive.map(r => r.route));
 
   const imports = routes.map((route, i) => {
     const isInteractive = interactivePaths.has(route.route);
     const componentName = `Page${i}`;
     const importPath = `./pages/${route.file.replace(/\.(jsx|tsx|ts)$/, '.js')}`;
 
-    // Lazy load static routes (they're just HTML, load fast)
-    // Eager load interactive routes (need JS ready)
+    // React.lazy import must be available in generated file
     return isInteractive
       ? `import ${componentName} from '${importPath}';`
       : `const ${componentName} = React.lazy(() => import('${importPath}'));`;
@@ -129,12 +112,10 @@ export function generatePartialHydrationCode(routes, analyzedRoutes) {
   }`;
   }).join(',\n');
 
+  // Note: consumer of this output must prepend: import React from 'react';
   return { imports, routeConfigs };
 }
 
-/**
- * Log hydration analysis results
- */
 export function logHydrationReport(analyzedRoutes) {
   const { static: staticRoutes, interactive } = analyzedRoutes;
 
