@@ -1,17 +1,15 @@
-// bertui/src/server/dev-handler.js - WITH MIDDLEWARE + LAYOUTS + LOADING
-import { join, extname, dirname } from 'path';
+ // bertui/src/server/dev-handler.js
+import { join, extname } from 'path';
 import { existsSync } from 'fs';
 import logger from '../logger/logger.js';
-import { compileProject } from '../client/compiler.js';
 import { loadConfig } from '../config/loadConfig.js';
 import { getContentType, getImageContentType, serveHTML, setupFileWatcher } from './dev-server-utils.js';
+import { MiddlewareContext } from '../middleware/index.js';
 
 export async function createDevHandler(options = {}) {
   const root = options.root || process.cwd();
   const port = parseInt(options.port) || 3000;
   const middlewareManager = options.middleware || null;
-  const layouts = options.layouts || {};
-  const loadingComponents = options.loadingComponents || {};
 
   const compiledDir = join(root, '.bertui', 'compiled');
   const stylesDir = join(root, '.bertui', 'styles');
@@ -55,7 +53,7 @@ export async function createDevHandler(options = {}) {
       return { type: 'websocket', handler: websocketHandler };
     }
 
-    // ✅ Run middleware BEFORE every page request
+    // Run middleware BEFORE every page request
     if (middlewareManager && isPageRequest(url.pathname)) {
       const middlewareResponse = await middlewareManager.run(request, {
         route: url.pathname,
@@ -74,7 +72,7 @@ export async function createDevHandler(options = {}) {
       });
     }
 
-    // Compiled JS (includes layouts and loading components)
+    // Compiled JS
     if (url.pathname.startsWith('/compiled/')) {
       const filepath = join(compiledDir, url.pathname.replace('/compiled/', ''));
       const file = Bun.file(filepath);
@@ -145,10 +143,11 @@ export async function createDevHandler(options = {}) {
       const filepath = join(root, 'node_modules', url.pathname.replace('/node_modules/', ''));
       const file = Bun.file(filepath);
       if (await file.exists()) {
-        const contentType = ext === '.css' ? 'text/css' :
-         ['.js', '.mjs', '.jsx', '.ts', '.tsx'].includes(ext) ? 'application/javascript; charset=utf-8' :
-        ext === '.json' ? 'application/json' :
-         getContentType(ext);
+        const ext = extname(filepath).toLowerCase();
+        const contentType = ext === '.css' ? 'text/css'
+          : ['.js', '.mjs', '.jsx', '.ts', '.tsx'].includes(ext) ? 'application/javascript; charset=utf-8'
+          : ext === '.json' ? 'application/json'
+          : getContentType(ext);
         return new Response(file, {
           headers: { 'Content-Type': contentType, 'Cache-Control': 'no-cache' },
         });
@@ -163,14 +162,25 @@ export async function createDevHandler(options = {}) {
       port,
       async fetch(req, server) {
         const url = new URL(req.url);
+
         if (url.pathname === '/__hmr') {
           const success = server.upgrade(req);
           if (success) return undefined;
           return new Response('WebSocket upgrade failed', { status: 500 });
         }
-        const response = await handleRequest(req);
-        if (response) return response;
-        return new Response('Not found', { status: 404 });
+
+        const response = await handleRequest(req) || new Response('Not found', { status: 404 });
+
+        // Run onResponse middleware after response is built
+        if (middlewareManager?.middleware?.onResponse && isPageRequest(url.pathname)) {
+          try {
+            await middlewareManager.middleware.onResponse(response, req);
+          } catch (e) {
+            logger.warn(`onResponse middleware error: ${e.message}`);
+          }
+        }
+
+        return response;
       },
       websocket: websocketHandler,
     });
@@ -189,7 +199,5 @@ export async function createDevHandler(options = {}) {
 }
 
 function isPageRequest(pathname) {
-  // Skip asset requests
-  return !pathname.includes('.') ||
-    pathname.endsWith('.html');
+  return !pathname.includes('.') || pathname.endsWith('.html');
 }

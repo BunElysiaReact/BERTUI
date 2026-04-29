@@ -2,7 +2,7 @@
 // Middleware system - src/middleware.ts runs before every request
 
 import { join, extname } from 'path';
-import { existsSync } from 'fs';
+import { existsSync, watch } from 'fs';
 import logger from '../logger/logger.js';
 
 /**
@@ -168,7 +168,7 @@ export class MiddlewareManager {
     const existing = candidates.find(existsSync);
     if (!existing) return;
 
-    const { watch } = require('fs');
+    
     this.watcher = watch(existing, async () => {
       logger.info('🔄 Reloading middleware...');
       this.middleware = await loadMiddleware(this.root);
