@@ -1,10 +1,11 @@
-// bertui/src/client/compiler.js - WITH IMPORTHOW ALIAS SUPPORT
+// bertui/src/client/compiler.js - WITH IMPORTHOW ALIAS SUPPORT AND MARKDOWN
 import { existsSync, mkdirSync, readdirSync, statSync } from 'fs';
 import { join, extname, relative, dirname } from 'path';
 import { transform } from 'lightningcss';
 import logger from '../logger/logger.js';
 import { loadEnvVariables, generateEnvCode, replaceEnvInCode } from '../utils/env.js';
 import { buildAliasMap, rewriteAliasImports, getAliasDirs } from '../utils/importhow.js';
+import { compileMarkdownDirectory } from '../md/index.js';
 
 export async function compileProject(root) {
   logger.bigLog('COMPILING PROJECT', { color: 'blue' });
@@ -62,6 +63,14 @@ export async function compileProject(root) {
   // ── Compile src/ ─────────────────────────────────────────────────────────
   const startTime = Date.now();
   const stats = await compileDirectory(srcDir, outDir, root, envVars, aliasMap);
+
+  // ── Compile markdown files ───────────────────────────────────────────────
+  if (existsSync(pagesDir)) {
+    logger.info('📝 Compiling markdown files...');
+    const mdStats = await compileMarkdownDirectory(pagesDir, join(outDir, 'pages'), root, envVars, aliasMap);
+    stats.files += mdStats.files;
+    stats.skipped += mdStats.skipped;
+  }
 
   // ── Compile alias dirs (importhow targets) ───────────────────────────────
   // NOTE: use raw importhow config here, NOT aliasMap

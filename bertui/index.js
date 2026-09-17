@@ -1,4 +1,21 @@
-// bertui/index.js - v1.2.2
+// bertui/index.js - v1.3.0 - WITH BUNDLER AND MARKDOWN SUPPORT
+
+// ✅ NEW: Unified React Bundler (replaces horrid build pipeline)
+export {
+  ReactBundler,
+  DevBundler,
+  bundle,
+  createBundler,
+  createDevBundler,
+} from './src/bundler/index.js';
+
+// ✅ NEW: Markdown Support (.md files as routes)
+export {
+  discoverMarkdownRoutes,
+  compileMarkdown,
+  compileMarkdownDirectory,
+  isMarkdownFile,
+} from './src/md/index.js';
 
 // Compiler
 export { compileProject, compileFile } from './src/client/compiler.js';
@@ -91,8 +108,7 @@ export {
   validateServerIsland,
 } from './src/server-islands/index.js';
 
-// ✅ NEW: importhow — alias/import resolution system
-// Bunny and external tools can use these to apply the same alias logic
+// ✅ importhow — alias/import resolution system
 export {
   buildAliasMap,
   rewriteAliasImports,
@@ -100,4 +116,4 @@ export {
 } from './src/utils/importhow.js';
 
 // Version
-export const version = '1.2.2';
+export const version = '1.3.0';

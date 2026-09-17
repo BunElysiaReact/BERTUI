@@ -1,34 +1,72 @@
-# dependencies (bun install)
-node_modules
+```
+# Dependencies
+node_modules/
+.bun/
+bun.lock
 
-# output
-out
+# Build outputs
+dist/
+build/
+target/
 
-*.tgz
-
-# code coverage
-coverage
-*.lcov
-
-# logs
-logs
-_.log
-report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
-
-# dotenv environment variable files
+# Environment variables
 .env
-.env.development.local
-.env.test.local
-.env.production.local
 .env.local
+*.env.*
 
-# caches
-.eslintcache
-.cache
-*.tsbuildinfo
+# Logs
+*.log
 
-# IntelliJ based IDEs
-.idea
+# Coverage reports
+coverage/
+htmlcov/
+.coverage
 
-# Finder (MacOS) folder config
+# IDE specific
+.vscode/
+.idea/
+*.swp
+*.swo
+*.tmp
+
+# OS generated
 .DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg-info/
+.eggs/
+
+# Node.js
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+.mypy_cache/
+.pytest_cache/
+.nyc_output/
+coverage/
+
+# Distribution / packaging
+*.tar.gz
+*.whl
+*.egg
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Browsers
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Bun specific
+.bun-build/
+.bun-install/
+```
